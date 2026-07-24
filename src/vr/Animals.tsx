@@ -169,13 +169,13 @@ function FoxMesh() {
   return (
     <group>
       {/* body */}
-      <mesh position={[0, 0.3, 0]} castShadow>
-        <capsuleGeometry args={[0.14, 0.4, 6, 12]} rotation={[0, 0, Math.PI / 2]} />
+      <mesh position={[0, 0.3, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <capsuleGeometry args={[0.14, 0.4, 6, 12]} />
         <meshStandardMaterial color="#c65a1e" roughness={0.9} />
       </mesh>
       {/* underbelly */}
-      <mesh position={[0, 0.22, 0]} scale={[1.02, 0.6, 0.9]} castShadow>
-        <capsuleGeometry args={[0.11, 0.36, 4, 8]} rotation={[0, 0, Math.PI / 2]} />
+      <mesh position={[0, 0.22, 0]} rotation={[0, 0, Math.PI / 2]} scale={[1.02, 0.6, 0.9]} castShadow>
+        <capsuleGeometry args={[0.11, 0.36, 4, 8]} />
         <meshStandardMaterial color="#f5e6cc" roughness={1} />
       </mesh>
       {/* chest ruff */}
