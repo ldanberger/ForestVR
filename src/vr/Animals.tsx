@@ -10,6 +10,7 @@ import {
   registerCritter,
   playerCaught,
   tagAnimal,
+  isFrozen,
   CATCH_RADIUS,
   FLEE_RADIUS,
   IT_SPEED_MULT,
@@ -69,21 +70,27 @@ function useWander(
       let steered = false;
 
       if (isIt) {
-        // Chase the player.
-        c.heading = Math.atan2(dzp, dxp);
-        speed = c.speed * IT_SPEED_MULT;
-        steered = true;
-        if (distP < CATCH_RADIUS) {
-          playerCaught();
+        if (isFrozen(c.id)) {
+          // Freshly tagged: stand still for a few seconds.
+          speed = 0;
+          steered = true;
         } else {
-          // Tag any non-it critter we brush against.
-          const r2 = CATCH_RADIUS * CATCH_RADIUS;
-          for (const other of tagState.critters) {
-            if (other.id === c.id) continue;
-            if (tagState.itIds.has(other.id)) continue;
-            const ox = other.pos.x - c.pos.x;
-            const oz = other.pos.z - c.pos.z;
-            if (ox * ox + oz * oz < r2) tagAnimal(other.id);
+          // Chase the player.
+          c.heading = Math.atan2(dzp, dxp);
+          speed = c.speed * IT_SPEED_MULT;
+          steered = true;
+          if (distP < CATCH_RADIUS) {
+            playerCaught();
+          } else {
+            // Tag any non-it critter we brush against.
+            const r2 = CATCH_RADIUS * CATCH_RADIUS;
+            for (const other of tagState.critters) {
+              if (other.id === c.id) continue;
+              if (tagState.itIds.has(other.id)) continue;
+              const ox = other.pos.x - c.pos.x;
+              const oz = other.pos.z - c.pos.z;
+              if (ox * ox + oz * oz < r2) tagAnimal(other.id);
+            }
           }
         }
       } else if (tagState.playerIsIt && distP < FLEE_RADIUS) {
