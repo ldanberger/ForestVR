@@ -4,6 +4,13 @@ import { XROrigin, useXRInputSourceState, useXR } from "@react-three/xr";
 import * as THREE from "three";
 import { heightAt } from "./useHeightAt";
 import { playerState } from "./playerState";
+import {
+  survivalState,
+  FOOD_DRAIN_PER_M,
+  WATER_DRAIN_PER_M,
+  WATER_GAIN_PER_S,
+} from "./survivalState";
+import { STREAM_HALF_WIDTH } from "./useHeightAt";
 
 const EYE_HEIGHT = 1.6;
 const MOVE_SPEED = 4;
