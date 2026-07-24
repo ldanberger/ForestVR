@@ -130,6 +130,15 @@ export function Player() {
       }
       camera.position.y = heightAt(camera.position.x, camera.position.z) + EYE_HEIGHT;
     }
+
+    // Publish player state for HUD (minimap etc.)
+    if (inXR && originRef.current) {
+      playerState.pos.copy(originRef.current.position);
+      playerState.yaw = originRef.current.rotation.y;
+    } else {
+      playerState.pos.copy(camera.position);
+      playerState.yaw = yaw.current;
+    }
   });
 
   return <XROrigin ref={originRef} position={[6, 0, 6]} />;
