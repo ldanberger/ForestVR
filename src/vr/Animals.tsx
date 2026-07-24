@@ -124,6 +124,34 @@ function useWander(
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
+      // Unstick: if the critter hasn't moved much in 5s, teleport nearby.
+      if (c.lastCheckT === 0) {
+        c.lastCheckT = t;
+        c.lastCheckX = c.pos.x;
+        c.lastCheckZ = c.pos.z;
+      } else if (t - c.lastCheckT > 5) {
+        const dxm = c.pos.x - c.lastCheckX;
+        const dzm = c.pos.z - c.lastCheckZ;
+        if (dxm * dxm + dzm * dzm < 0.25) {
+          for (let tryI = 0; tryI < 8; tryI++) {
+            const ang = Math.random() * Math.PI * 2;
+            const rad = 3 + Math.random() * 4;
+            const nx = c.pos.x + Math.cos(ang) * rad;
+            const nz = c.pos.z + Math.sin(ang) * rad;
+            if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) continue;
+            if (Math.abs(nx) > 55 || Math.abs(nz) > 55) continue;
+            c.pos.x = nx;
+            c.pos.z = nz;
+            c.pos.y = heightAt(nx, nz);
+            c.heading = Math.random() * Math.PI * 2;
+            break;
+          }
+        }
+        c.lastCheckT = t;
+        c.lastCheckX = c.pos.x;
+        c.lastCheckZ = c.pos.z;
+      }
+
       // Animals eat carrots they wander over (only when not chasing).
       if (!isIt) {
         const r2 = ANIMAL_EAT_RADIUS * ANIMAL_EAT_RADIUS;
