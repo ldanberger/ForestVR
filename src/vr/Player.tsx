@@ -4,6 +4,13 @@ import { XROrigin, useXRInputSourceState, useXR } from "@react-three/xr";
 import * as THREE from "three";
 import { heightAt } from "./useHeightAt";
 import { playerState } from "./playerState";
+import {
+  survivalState,
+  FOOD_DRAIN_PER_M,
+  WATER_DRAIN_PER_M,
+  WATER_GAIN_PER_S,
+} from "./survivalState";
+import { STREAM_HALF_WIDTH } from "./useHeightAt";
 
 const EYE_HEIGHT = 1.6;
 const MOVE_SPEED = 4;
@@ -131,13 +138,26 @@ export function Player() {
       camera.position.y = heightAt(camera.position.x, camera.position.z) + EYE_HEIGHT;
     }
 
-    // Publish player state for HUD (minimap etc.)
+    // Publish player state for HUD (minimap etc.) and drain/refill survival stats.
+    const prevX = playerState.pos.x;
+    const prevZ = playerState.pos.z;
     if (inXR && originRef.current) {
       playerState.pos.copy(originRef.current.position);
       playerState.yaw = originRef.current.rotation.y;
     } else {
       playerState.pos.copy(camera.position);
       playerState.yaw = yaw.current;
+    }
+    const dxm = playerState.pos.x - prevX;
+    const dzm = playerState.pos.z - prevZ;
+    const moved = Math.hypot(dxm, dzm);
+    if (moved > 0) {
+      survivalState.food = Math.max(0, survivalState.food - moved * FOOD_DRAIN_PER_M);
+      survivalState.water = Math.max(0, survivalState.water - moved * WATER_DRAIN_PER_M);
+    }
+    // Standing in / at the stream refills water without removing it from the map.
+    if (Math.abs(playerState.pos.x) < STREAM_HALF_WIDTH + 0.6) {
+      survivalState.water = Math.min(100, survivalState.water + WATER_GAIN_PER_S * dt);
     }
   });
 
