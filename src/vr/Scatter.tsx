@@ -1,4 +1,4 @@
-import { useMemo, useRef, useLayoutEffect } from "react";
+import { useMemo, useRef, useLayoutEffect, type ReactElement } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
@@ -83,10 +83,11 @@ function makeBarkTextures(size = 256) {
   return { colorMap: cTex, normalMap: nTex };
 }
 
-/* --------- Procedural rock texture --------- */
-function makeRockTextures(size = 256) {
+/* --------- Procedural rock texture (weathered granite) --------- */
+function makeRockTextures(size = 512) {
   const color = new Uint8Array(size * size * 4);
   const normal = new Uint8Array(size * size * 4);
+  const rough = new Uint8Array(size * size * 4);
   const heightGrid = new Float32Array(size * size);
   const hash = (x: number, y: number) => {
     const s = Math.sin(x * 91.3 + y * 47.9) * 21343.13;
@@ -100,27 +101,94 @@ function makeRockTextures(size = 256) {
     const c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
     return THREE.MathUtils.lerp(THREE.MathUtils.lerp(a, b, u), THREE.MathUtils.lerp(c, d, u), v);
   };
+  const fbm = (x: number, y: number, oct: number) => {
+    let h = 0, a = 0.5, f = 1;
+    for (let o = 0; o < oct; o++) { h += noise(x * f, y * f) * a; a *= 0.5; f *= 2.03; }
+    return h;
+  };
+  // Worley-ish cell noise for cracks & pebble grain
+  const cell = (x: number, y: number, scale: number) => {
+    const gx = Math.floor(x * scale), gy = Math.floor(y * scale);
+    let d1 = 10, d2 = 10;
+    for (let jy = -1; jy <= 1; jy++) {
+      for (let jx = -1; jx <= 1; jx++) {
+        const cx = gx + jx, cy = gy + jy;
+        const px = cx + hash(cx, cy);
+        const py = cy + hash(cx + 33, cy + 77);
+        const dx = px - x * scale, dy = py - y * scale;
+        const d = Math.hypot(dx, dy);
+        if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) { d2 = d; }
+      }
+    }
+    return { edge: d2 - d1, dist: d1 };
+  };
+
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      let h = 0, a = 0.5, f = 0.05;
-      for (let o = 0; o < 5; o++) { h += noise(x * f, y * f) * a; a *= 0.5; f *= 2.1; }
+      const u = x / size, v = y / size;
+      // Layered height: broad bumps + medium ridges + fine grain
+      const big = fbm(u * 3, v * 3, 4);
+      const med = fbm(u * 9 + 5, v * 9 + 3, 4);
+      const grain = fbm(u * 48, v * 48, 3) * 0.35;
+      const pebble = cell(u, v, 22);
+      const bump = big * 0.55 + med * 0.35 + grain * 0.25 + (1 - Math.min(pebble.dist, 0.5)) * 0.08;
+      // Cracks: thin dark lines along cell edges (small edge distance = crack)
+      const crackEdge = Math.max(0, 0.06 - pebble.edge) / 0.06;
+      const crack = Math.pow(crackEdge, 1.5);
+      const h = bump - crack * 0.25;
       heightGrid[y * size + x] = h;
-      const crack = Math.pow(1 - Math.abs(noise(x * 0.03, y * 0.03) - 0.5) * 2, 8);
-      const v = 90 + h * 120 - crack * 60;
-      const moss = Math.max(0, noise(x * 0.02 + 5, y * 0.02) - 0.6) * 2;
+
+      // Base granite: warm-cool speckle
+      const speck = hash(x * 3.1, y * 3.1);
+      const feld = Math.pow(fbm(u * 90, v * 90, 2), 4); // bright feldspar flecks
+      const darkGrain = Math.pow(fbm(u * 60 + 11, v * 60 + 7, 2), 3);
+      let r = 118 + big * 55 + med * 25 - darkGrain * 60 + feld * 90 + speck * 8;
+      let g = 112 + big * 50 + med * 22 - darkGrain * 55 + feld * 82 + speck * 8;
+      let b = 104 + big * 45 + med * 20 - darkGrain * 55 + feld * 70 + speck * 8;
+
+      // Iron oxide stain (warm) in mid patches
+      const stain = Math.max(0, fbm(u * 4 + 3.7, v * 4 - 1.3, 3) - 0.55) * 2.2;
+      r += stain * 55;
+      g += stain * 25;
+      b += stain * 8;
+
+      // Cracks darken
+      r -= crack * 55; g -= crack * 55; b -= crack * 55;
+
+      // Moss in low pockets (where bump is low & stain is low)
+      const mossMask = Math.max(0, 0.55 - bump) * Math.max(0, fbm(u * 6 + 21, v * 6 + 42, 3) - 0.45);
+      const moss = Math.min(1, mossMask * 4);
+      r = THREE.MathUtils.lerp(r, 68, moss * 0.8);
+      g = THREE.MathUtils.lerp(g, 108, moss * 0.85);
+      b = THREE.MathUtils.lerp(b, 55, moss * 0.8);
+
+      // Lichen: pale grey-green blotches
+      const lichenMask = Math.max(0, fbm(u * 8 + 66, v * 8 + 11, 3) - 0.62) * 3;
+      const lichen = Math.min(1, lichenMask);
+      r = THREE.MathUtils.lerp(r, 175, lichen * 0.5);
+      g = THREE.MathUtils.lerp(g, 180, lichen * 0.55);
+      b = THREE.MathUtils.lerp(b, 160, lichen * 0.45);
+
       const i = (y * size + x) * 4;
-      color[i] = v * 0.9 * (1 - moss * 0.6);
-      color[i + 1] = v * 0.9 * (1 - moss * 0.2) + moss * 40;
-      color[i + 2] = v * 0.85 * (1 - moss * 0.7);
+      color[i] = Math.max(0, Math.min(255, r));
+      color[i + 1] = Math.max(0, Math.min(255, g));
+      color[i + 2] = Math.max(0, Math.min(255, b));
       color[i + 3] = 255;
+
+      // Roughness: moss & cracks rougher, feldspar shinier
+      const rgh = Math.max(0, Math.min(255,
+        220 - feld * 90 + crack * 20 + moss * 30 - stain * 20
+      ));
+      rough[i] = rgh; rough[i + 1] = rgh; rough[i + 2] = rgh; rough[i + 3] = 255;
     }
   }
+  // Normal from height (higher slope multiplier for punchier detail)
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const h = heightGrid[y * size + x];
       const hx = heightGrid[y * size + ((x + 1) % size)];
       const hy = heightGrid[((y + 1) % size) * size + x];
-      const dx = (hx - h) * 10, dy = (hy - h) * 10;
+      const dx = (hx - h) * 18, dy = (hy - h) * 18;
       const nx = -dx, ny = -dy, nz = 1;
       const len = Math.hypot(nx, ny, nz);
       const i = (y * size + x) * 4;
@@ -132,11 +200,16 @@ function makeRockTextures(size = 256) {
   }
   const cTex = new THREE.DataTexture(color, size, size, THREE.RGBAFormat);
   cTex.wrapS = cTex.wrapT = THREE.RepeatWrapping;
+  cTex.anisotropy = 8;
   cTex.needsUpdate = true;
   const nTex = new THREE.DataTexture(normal, size, size, THREE.RGBAFormat);
   nTex.wrapS = nTex.wrapT = THREE.RepeatWrapping;
+  nTex.anisotropy = 8;
   nTex.needsUpdate = true;
-  return { colorMap: cTex, normalMap: nTex };
+  const rTex = new THREE.DataTexture(rough, size, size, THREE.RGBAFormat);
+  rTex.wrapS = rTex.wrapT = THREE.RepeatWrapping;
+  rTex.needsUpdate = true;
+  return { colorMap: cTex, normalMap: nTex, roughnessMap: rTex };
 }
 
 /* --------- TREES (instanced, layered foliage) --------- */
@@ -255,20 +328,43 @@ export function Trees() {
 
 export function Rocks() {
   const positions = useMemo(() => scatterPoints(120, 7, { minY: -1, maxY: 20 }), []);
-  const { colorMap, normalMap } = useMemo(() => makeRockTextures(256), []);
+  const { colorMap, normalMap, roughnessMap } = useMemo(() => makeRockTextures(512), []);
 
-  // Pre-generate a few varied rock geometries for diversity
+  // Pre-generate varied rock geometries: chunky boulders, flat slabs, sharp shards.
   const geos = useMemo(() => {
     const list: THREE.BufferGeometry[] = [];
-    for (let n = 0; n < 5; n++) {
-      const g = new THREE.IcosahedronGeometry(0.8, 2);
+    const shapes: Array<"boulder" | "slab" | "shard" | "pebble"> = [
+      "boulder", "boulder", "slab", "shard", "pebble", "boulder", "slab",
+    ];
+    for (let n = 0; n < shapes.length; n++) {
+      const shape = shapes[n];
+      const detail = shape === "pebble" ? 1 : 2;
+      const g = new THREE.IcosahedronGeometry(0.8, detail);
       const pos = g.attributes.position as THREE.BufferAttribute;
       const rand = rng(1000 + n * 17);
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-        const jitter = 0.7 + rand() * 0.6;
-        const flatten = 0.6 + rand() * 0.5;
-        pos.setXYZ(i, x * jitter, y * flatten * (0.7 + rand() * 0.4), z * jitter);
+        let nx = x, ny = y, nz = z;
+        if (shape === "boulder") {
+          const jitter = 0.75 + rand() * 0.55;
+          const flatten = 0.55 + rand() * 0.4;
+          nx = x * jitter; ny = y * flatten * (0.75 + rand() * 0.35); nz = z * jitter;
+        } else if (shape === "slab") {
+          const spread = 1.1 + rand() * 0.5;
+          nx = x * spread; ny = y * (0.25 + rand() * 0.15); nz = z * spread;
+        } else if (shape === "shard") {
+          const taperY = 0.5 + (y + 0.8) * 0.6;
+          const jitter = 0.7 + rand() * 0.5;
+          nx = x * jitter * taperY;
+          ny = y * (1.15 + rand() * 0.35);
+          nz = z * jitter * taperY;
+        } else {
+          const j = 0.85 + rand() * 0.4;
+          nx = x * j; ny = y * j * 0.75; nz = z * j;
+        }
+        // Fine surface bumpiness on top of shape
+        const bump = 1 + (rand() - 0.5) * 0.18;
+        pos.setXYZ(i, nx * bump, ny * bump, nz * bump);
       }
       g.computeVertexNormals();
       list.push(g);
@@ -280,31 +376,61 @@ export function Rocks() {
     () => new THREE.MeshStandardMaterial({
       map: colorMap,
       normalMap,
-      normalScale: new THREE.Vector2(1.4, 1.4),
-      color: "#8a8478",
-      roughness: 0.9,
-      metalness: 0.05,
+      roughnessMap,
+      normalScale: new THREE.Vector2(1.6, 1.6),
+      color: "#9a9488",
+      roughness: 1,
+      metalness: 0.04,
+      envMapIntensity: 0.7,
     }),
-    [colorMap, normalMap],
+    [colorMap, normalMap, roughnessMap],
   );
 
   return (
     <group>
       {positions.map((p, i) => {
-        const s = 0.5 + ((i * 13) % 100) / 60;
         const geo = geos[i % geos.length];
-        return (
+        const isPebble = geos[i % geos.length] === geos[4];
+        const s = isPebble ? 0.25 + ((i * 11) % 100) / 220 : 0.55 + ((i * 13) % 100) / 55;
+        const sink = isPebble ? 0.05 : 0.18 + ((i * 7) % 100) / 500;
+        const rocks: ReactElement[] = [
           <mesh
-            key={i}
+            key={`${i}-main`}
             geometry={geo}
             material={mat}
-            position={[p.x, p.y - 0.05 * s, p.z]}
-            rotation={[i * 0.3, i * 0.7, i * 0.5]}
-            scale={[s, s * (0.6 + ((i * 19) % 100) / 200), s]}
+            position={[p.x, p.y - sink * s, p.z]}
+            rotation={[(i * 0.31) % Math.PI, (i * 0.7) % (Math.PI * 2), (i * 0.53) % Math.PI]}
+            scale={[s, s * (0.55 + ((i * 19) % 100) / 200), s * (0.9 + ((i * 23) % 100) / 300)]}
             castShadow
             receiveShadow
-          />
-        );
+          />,
+        ];
+        // Cluster: add 1–2 smaller companion rocks around larger boulders
+        if (!isPebble && (i * 17) % 5 < 3) {
+          const companions = 1 + ((i * 13) % 2);
+          for (let k = 0; k < companions; k++) {
+            const ang = ((i * 1.3 + k * 2.1) % (Math.PI * 2));
+            const dist = s * (0.9 + ((i + k) % 5) * 0.15);
+            const cx = p.x + Math.cos(ang) * dist;
+            const cz = p.z + Math.sin(ang) * dist;
+            const cy = heightAt(cx, cz);
+            const cs = s * (0.35 + ((i * 3 + k * 7) % 100) / 300);
+            const cgeo = geos[(i + k + 3) % geos.length];
+            rocks.push(
+              <mesh
+                key={`${i}-c${k}`}
+                geometry={cgeo}
+                material={mat}
+                position={[cx, cy - 0.1 * cs, cz]}
+                rotation={[(i + k) * 0.4, (i + k) * 0.9, (i + k) * 0.6]}
+                scale={[cs, cs * 0.7, cs * 0.95]}
+                castShadow
+                receiveShadow
+              />,
+            );
+          }
+        }
+        return <group key={i}>{rocks}</group>;
       })}
     </group>
   );
