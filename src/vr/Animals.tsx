@@ -3,15 +3,29 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { survivalState, ANIMAL_EAT_RADIUS } from "./survivalState";
+import { playerState } from "./playerState";
+import {
+  tagState,
+  nextCritterId,
+  registerCritter,
+  playerCaught,
+  tagAnimal,
+  CATCH_RADIUS,
+  FLEE_RADIUS,
+  IT_SPEED_MULT,
+  FLEE_SPEED_MULT,
+} from "./tagState";
 
 type Critter = {
+  id: number;
+  species: "rabbit" | "fox";
   pos: THREE.Vector3;
   heading: number;
   speed: number;
   phase: number;
 };
 
-function makeCritters(count: number, seed: number, speed: number): Critter[] {
+function makeCritters(count: number, seed: number, speed: number, species: "rabbit" | "fox"): Critter[] {
   const arr: Critter[] = [];
   let s = seed;
   for (let i = 0; i < count; i++) {
@@ -20,12 +34,17 @@ function makeCritters(count: number, seed: number, speed: number): Critter[] {
     s = (s * 1103515245 + 12345) >>> 0;
     const z = ((s / 0xffffffff) - 0.5) * 60;
     if (Math.abs(x) < STREAM_HALF_WIDTH + 1) continue;
-    arr.push({
+    const critter: Critter = {
+      id: nextCritterId(),
+      species,
       pos: new THREE.Vector3(x, heightAt(x, z), z),
       heading: Math.random() * Math.PI * 2,
       speed,
       phase: Math.random() * Math.PI * 2,
-    });
+    };
+    arr.push(critter);
+    // Register with tag system, sharing the same pos vector so movement is visible globally.
+    registerCritter({ id: critter.id, pos: critter.pos, species });
   }
   return arr;
 }
@@ -33,40 +52,97 @@ function makeCritters(count: number, seed: number, speed: number): Critter[] {
 function useWander(
   critters: Critter[],
   groupRef: React.RefObject<THREE.Group | null>,
-  animate: (child: THREE.Object3D, t: number, phase: number, movingSpeed: number) => void,
+  animate: (child: THREE.Object3D, t: number, critter: Critter, movingSpeed: number) => void,
 ) {
   useFrame((state, dt) => {
     const t = state.clock.elapsedTime;
     if (!groupRef.current) return;
+    const px = playerState.pos.x;
+    const pz = playerState.pos.z;
+
     critters.forEach((c, i) => {
-      if (Math.sin(t * 0.3 + i) > 0.995) c.heading += (Math.random() - 0.5) * 1.2;
-      c.pos.x += Math.cos(c.heading) * c.speed * dt;
-      c.pos.z += Math.sin(c.heading) * c.speed * dt;
+      const isIt = tagState.itIds.has(c.id);
+      const dxp = px - c.pos.x;
+      const dzp = pz - c.pos.z;
+      const distP = Math.hypot(dxp, dzp) || 0.0001;
+      let speed = c.speed;
+      let steered = false;
+
+      if (isIt) {
+        // Chase the player.
+        c.heading = Math.atan2(dzp, dxp);
+        speed = c.speed * IT_SPEED_MULT;
+        steered = true;
+        if (distP < CATCH_RADIUS) {
+          playerCaught();
+        } else {
+          // Tag any non-it critter we brush against.
+          const r2 = CATCH_RADIUS * CATCH_RADIUS;
+          for (const other of tagState.critters) {
+            if (other.id === c.id) continue;
+            if (tagState.itIds.has(other.id)) continue;
+            const ox = other.pos.x - c.pos.x;
+            const oz = other.pos.z - c.pos.z;
+            if (ox * ox + oz * oz < r2) tagAnimal(other.id);
+          }
+        }
+      } else if (tagState.playerIsIt && distP < FLEE_RADIUS) {
+        // Flee from the player.
+        c.heading = Math.atan2(-dzp, -dxp);
+        speed = c.speed * FLEE_SPEED_MULT;
+        steered = true;
+      } else if (!tagState.playerIsIt && distP < FLEE_RADIUS * 0.6) {
+        // A non-it animal also gives the player space while chased.
+        c.heading = Math.atan2(-dzp, -dxp);
+        speed = c.speed * 1.1;
+        steered = true;
+      }
+
+      if (!steered && Math.sin(t * 0.3 + i) > 0.995) {
+        c.heading += (Math.random() - 0.5) * 1.2;
+      }
+
+      c.pos.x += Math.cos(c.heading) * speed * dt;
+      c.pos.z += Math.sin(c.heading) * speed * dt;
       if (Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5 || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
         c.heading += Math.PI;
-        c.pos.x += Math.cos(c.heading) * c.speed * dt * 2;
-        c.pos.z += Math.sin(c.heading) * c.speed * dt * 2;
+        c.pos.x += Math.cos(c.heading) * speed * dt * 2;
+        c.pos.z += Math.sin(c.heading) * speed * dt * 2;
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
-      // Animals eat carrots they wander over.
-      const r2 = ANIMAL_EAT_RADIUS * ANIMAL_EAT_RADIUS;
-      for (const carrot of survivalState.carrots) {
-        if (carrot.picked) continue;
-        const dx = carrot.x - c.pos.x;
-        const dz = carrot.z - c.pos.z;
-        if (dx * dx + dz * dz < r2) {
-          carrot.picked = true;
-          survivalState.version++;
+
+      // Animals eat carrots they wander over (only when not chasing).
+      if (!isIt) {
+        const r2 = ANIMAL_EAT_RADIUS * ANIMAL_EAT_RADIUS;
+        for (const carrot of survivalState.carrots) {
+          if (carrot.picked) continue;
+          const dx = carrot.x - c.pos.x;
+          const dz = carrot.z - c.pos.z;
+          if (dx * dx + dz * dz < r2) {
+            carrot.picked = true;
+            survivalState.version++;
+          }
         }
       }
       const child = groupRef.current!.children[i] as THREE.Object3D | undefined;
       if (child) {
         child.position.set(c.pos.x, c.pos.y, c.pos.z);
         child.rotation.y = -c.heading + Math.PI / 2;
-        animate(child, t, c.phase, c.speed);
+        const mark = child.getObjectByName("itMark");
+        if (mark) mark.visible = isIt;
+        animate(child, t, c, speed);
       }
     });
   });
+}
+
+function ItMark() {
+  return (
+    <mesh name="itMark" position={[0, 1.05, 0]} visible={false}>
+      <sphereGeometry args={[0.12, 12, 10]} />
+      <meshStandardMaterial color="#ff2020" emissive="#ff2020" emissiveIntensity={2.4} toneMapped={false} />
+    </mesh>
+  );
 }
 
 /* -------------- RABBIT -------------- */
