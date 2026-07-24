@@ -15,6 +15,7 @@ const store = createXRStore();
 export default function ForestVR() {
   return (
     <div style={{ position: "fixed", inset: 0, background: "#88b4d8" }}>
+      <Minimap />
       <div
         style={{
           position: "absolute",
