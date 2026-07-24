@@ -24,6 +24,9 @@ type Critter = {
   heading: number;
   speed: number;
   phase: number;
+  lastCheckT: number;
+  lastCheckX: number;
+  lastCheckZ: number;
 };
 
 function makeCritters(count: number, seed: number, speed: number, species: "rabbit" | "fox"): Critter[] {
@@ -42,6 +45,9 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       heading: Math.random() * Math.PI * 2,
       speed,
       phase: Math.random() * Math.PI * 2,
+      lastCheckT: 0,
+      lastCheckX: x,
+      lastCheckZ: z,
     };
     arr.push(critter);
     // Register with tag system, sharing the same pos vector so movement is visible globally.
@@ -117,6 +123,34 @@ function useWander(
         c.pos.z += Math.sin(c.heading) * speed * dt * 2;
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
+
+      // Unstick: if the critter hasn't moved much in 5s, teleport nearby.
+      if (c.lastCheckT === 0) {
+        c.lastCheckT = t;
+        c.lastCheckX = c.pos.x;
+        c.lastCheckZ = c.pos.z;
+      } else if (t - c.lastCheckT > 5) {
+        const dxm = c.pos.x - c.lastCheckX;
+        const dzm = c.pos.z - c.lastCheckZ;
+        if (dxm * dxm + dzm * dzm < 0.25) {
+          for (let tryI = 0; tryI < 8; tryI++) {
+            const ang = Math.random() * Math.PI * 2;
+            const rad = 3 + Math.random() * 4;
+            const nx = c.pos.x + Math.cos(ang) * rad;
+            const nz = c.pos.z + Math.sin(ang) * rad;
+            if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) continue;
+            if (Math.abs(nx) > 55 || Math.abs(nz) > 55) continue;
+            c.pos.x = nx;
+            c.pos.z = nz;
+            c.pos.y = heightAt(nx, nz);
+            c.heading = Math.random() * Math.PI * 2;
+            break;
+          }
+        }
+        c.lastCheckT = t;
+        c.lastCheckX = c.pos.x;
+        c.lastCheckZ = c.pos.z;
+      }
 
       // Animals eat carrots they wander over (only when not chasing).
       if (!isIt) {

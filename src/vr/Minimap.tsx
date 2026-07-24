@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { playerState } from "./playerState";
 import { survivalState } from "./survivalState";
+import { tagState } from "./tagState";
 
 const MAP_WORLD = 220; // covers -110..110
 const MAP_PX = 180;
@@ -134,6 +135,24 @@ export function Minimap() {
           ctx.lineWidth = 0.8;
           ctx.beginPath();
           ctx.arc(mx, my, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // "It" animals shown as red dots with glow
+        for (const critter of tagState.critters) {
+          if (!tagState.itIds.has(critter.id)) continue;
+          const mx = worldToPx(critter.pos.x);
+          const my = worldToPx(critter.pos.z);
+          ctx.fillStyle = "rgba(255,40,40,0.35)";
+          ctx.beginPath();
+          ctx.arc(mx, my, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#ff2020";
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.arc(mx, my, 2.4, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
         }
