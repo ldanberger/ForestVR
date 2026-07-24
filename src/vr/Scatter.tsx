@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useLayoutEffect } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
@@ -67,7 +67,7 @@ export function Trees() {
     });
   }, [positions]);
 
-  useMemo(() => {
+  useLayoutEffect(() => {
     // fill instance matrices once
     const setInstances = (mesh: THREE.InstancedMesh | null, cb: (i: number, d: THREE.Object3D, s: number) => void) => {
       if (!mesh) return;
@@ -96,7 +96,7 @@ export function Trees() {
       d.position.y += 4.1 * d.scale.y;
       d.scale.multiplyScalar(0.75);
     });
-  });
+  }, []);
 
   return (
     <group>
@@ -195,7 +195,7 @@ export function GrassBlades() {
   const ref = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  useMemo(() => {
+  useLayoutEffect(() => {
     if (!ref.current) return;
     positions.forEach((p, i) => {
       dummy.position.set(p.x, p.y, p.z);
@@ -205,7 +205,7 @@ export function GrassBlades() {
       ref.current!.setMatrixAt(i, dummy.matrix);
     });
     ref.current.instanceMatrix.needsUpdate = true;
-  });
+  }, []);
 
   useFrame((state) => {
     if (!ref.current) return;
