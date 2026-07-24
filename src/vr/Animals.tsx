@@ -226,15 +226,14 @@ function RabbitMesh() {
 }
 
 export function Rabbits() {
-  const critters = useMemo(() => makeCritters(10, 4242, 1.2), []);
+  const critters = useMemo(() => makeCritters(10, 4242, 1.2, "rabbit"), []);
   const groupRef = useRef<THREE.Group>(null);
-  useWander(critters, groupRef, (child, t, phase) => {
+  useWander(critters, groupRef, (child, t, c) => {
+    const phase = c.phase;
     const hop = Math.max(0, Math.sin(t * 5 + phase)) * 0.22;
     child.position.y += hop;
-    // Body pitch during hop
     const pitch = Math.cos(t * 5 + phase) * 0.15;
     child.rotation.x = pitch;
-    // Ear twitch
     const earL = child.getObjectByName("earL");
     const earR = child.getObjectByName("earR");
     if (earL) earL.rotation.z = -0.15 + Math.sin(t * 3 + phase) * 0.1;
@@ -245,6 +244,7 @@ export function Rabbits() {
       {critters.map((_, i) => (
         <group key={i}>
           <RabbitMesh />
+          <ItMark />
         </group>
       ))}
     </group>
