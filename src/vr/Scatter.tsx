@@ -1,4 +1,4 @@
-import { useMemo, useRef, useLayoutEffect } from "react";
+import { useMemo, useRef, useLayoutEffect, type ReactElement } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
@@ -393,7 +393,7 @@ export function Rocks() {
         const isPebble = geos[i % geos.length] === geos[4];
         const s = isPebble ? 0.25 + ((i * 11) % 100) / 220 : 0.55 + ((i * 13) % 100) / 55;
         const sink = isPebble ? 0.05 : 0.18 + ((i * 7) % 100) / 500;
-        const rocks: JSX.Element[] = [
+        const rocks: ReactElement[] = [
           <mesh
             key={`${i}-main`}
             geometry={geo}
