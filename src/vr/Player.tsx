@@ -3,6 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { XROrigin, useXRInputSourceState, useXR } from "@react-three/xr";
 import * as THREE from "three";
 import { heightAt } from "./useHeightAt";
+import { playerState } from "./playerState";
 
 const EYE_HEIGHT = 1.6;
 const MOVE_SPEED = 4;
