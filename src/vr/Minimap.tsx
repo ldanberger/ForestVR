@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { playerState } from "./playerState";
 import { survivalState } from "./survivalState";
+import { tagState } from "./tagState";
 
 const MAP_WORLD = 220; // covers -110..110
 const MAP_PX = 180;
