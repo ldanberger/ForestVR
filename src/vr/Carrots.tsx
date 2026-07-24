@@ -5,7 +5,6 @@ import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { playerState } from "./playerState";
 import {
   survivalState,
-  CARROT_FOOD_GAIN,
   CARROT_PICK_RADIUS,
   type Carrot,
 } from "./survivalState";
@@ -30,7 +29,7 @@ function generateCarrots(count = 60): Carrot[] {
     if (Math.abs(x) < STREAM_HALF_WIDTH + 1.2) continue;
     const y = heightAt(x, z);
     if (y < 0.4 || y > 6) continue;
-    out.push({ id: out.length, x, z, picked: false });
+    out.push({ id: out.length, x, z, picked: false, foundByPlayer: false });
   }
   return out;
 }
@@ -44,13 +43,13 @@ export function Carrots() {
   }, []);
 
   useEffect(() => {
-    // Ensure state matches on remount
     survivalState.carrots = carrots;
   }, [carrots]);
 
   const groupRefs = useRef<(THREE.Group | null)[]>([]);
 
   useFrame(() => {
+    if (survivalState.gameOver) return;
     const px = playerState.pos.x;
     const pz = playerState.pos.z;
     let changed = false;
@@ -60,7 +59,8 @@ export function Carrots() {
       const dz = c.z - pz;
       if (dx * dx + dz * dz < CARROT_PICK_RADIUS * CARROT_PICK_RADIUS) {
         c.picked = true;
-        survivalState.food = Math.min(100, survivalState.food + CARROT_FOOD_GAIN);
+        c.foundByPlayer = true;
+        survivalState.backpack += 1;
         survivalState.version++;
         changed = true;
       }

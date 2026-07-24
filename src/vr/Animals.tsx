@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
+import { survivalState, ANIMAL_EAT_RADIUS } from "./survivalState";
 
 type Critter = {
   pos: THREE.Vector3;
@@ -47,6 +48,17 @@ function useWander(
         c.pos.z += Math.sin(c.heading) * c.speed * dt * 2;
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
+      // Animals eat carrots they wander over.
+      const r2 = ANIMAL_EAT_RADIUS * ANIMAL_EAT_RADIUS;
+      for (const carrot of survivalState.carrots) {
+        if (carrot.picked) continue;
+        const dx = carrot.x - c.pos.x;
+        const dz = carrot.z - c.pos.z;
+        if (dx * dx + dz * dz < r2) {
+          carrot.picked = true;
+          survivalState.version++;
+        }
+      }
       const child = groupRef.current!.children[i] as THREE.Object3D | undefined;
       if (child) {
         child.position.set(c.pos.x, c.pos.y, c.pos.z);
