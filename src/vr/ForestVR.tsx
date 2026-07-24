@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { Sky, Environment, SoftShadows, Cloud, Clouds } from "@react-three/drei";
+import { Sky, Environment, Cloud, Clouds } from "@react-three/drei";
 import { XR, createXRStore } from "@react-three/xr";
 import * as THREE from "three";
 import { Terrain } from "./Terrain";
@@ -64,13 +64,13 @@ export default function ForestVR() {
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.05;
-          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+          gl.shadowMap.type = THREE.PCFShadowMap;
         }}
       >
         <XR store={store}>
           <color attach="background" args={["#9ec3e0"]} />
           <fog attach="fog" args={["#b8d0e2", 55, 220]} />
-          <SoftShadows size={28} samples={12} focus={0.6} />
+
           <ambientLight intensity={0.35} />
           <hemisphereLight args={["#dceeff", "#3a4a2a", 0.45]} />
           <directionalLight
