@@ -1,24 +1,55 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ClientOnly } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+const ForestVR = lazy(() => import("../vr/ForestVR"));
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Forest VR — Explore on Meta Quest 3" },
+      {
+        name: "description",
+        content:
+          "A WebXR forest for Meta Quest 3. Walk through streams, hills and mountains, meet rabbits and foxes, and pick up an axe, bow, or sword.",
+      },
+      { property: "og:title", content: "Forest VR — Explore on Meta Quest 3" },
+      {
+        property: "og:description",
+        content: "Immersive WebXR forest with wildlife and pickable items. Open on Quest 3 to enter VR.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Loading() {
   return (
     <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#0f172a",
+        color: "#fff",
+        fontFamily: "sans-serif",
+      }}
     >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+      Loading forest…
     </div>
+  );
+}
+
+function Index() {
+  return (
+    <ClientOnly fallback={<Loading />}>
+      <Suspense fallback={<Loading />}>
+        <ForestVR />
+      </Suspense>
+    </ClientOnly>
   );
 }
