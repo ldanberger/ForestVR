@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { Sky, Environment, SoftShadows, Cloud, Clouds } from "@react-three/drei";
+import { Sky, Environment, Cloud, Clouds } from "@react-three/drei";
 import { XR, createXRStore } from "@react-three/xr";
 import * as THREE from "three";
 import { Terrain } from "./Terrain";
