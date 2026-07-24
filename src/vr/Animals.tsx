@@ -105,8 +105,8 @@ export function Foxes() {
             <meshStandardMaterial color="#c85a1e" />
           </mesh>
           {/* snout */}
-          <mesh position={[0.44, 0.32, 0]} castShadow>
-            <coneGeometry args={[0.06, 0.14, 5]} rotation={[0, 0, -Math.PI / 2]} />
+          <mesh position={[0.44, 0.32, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
+            <coneGeometry args={[0.06, 0.14, 5]} />
             <meshStandardMaterial color="#3a2a1e" />
           </mesh>
           {/* tail */}

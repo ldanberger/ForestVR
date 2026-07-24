@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useXRInputSourceState } from "@react-three/xr";
 import * as THREE from "three";
@@ -61,7 +61,7 @@ function BowMesh() {
   );
 }
 
-const MESHES: Record<ItemKind, () => JSX.Element> = {
+const MESHES: Record<ItemKind, () => ReactElement> = {
   axe: AxeMesh,
   sword: SwordMesh,
   bow: BowMesh,
@@ -187,7 +187,7 @@ export function Items() {
           <meshBasicMaterial color="#f8f0d8" side={2} />
         </mesh>
       </group>
-      {void scene && null}
+      {scene ? null : null}
     </group>
   );
 }
