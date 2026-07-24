@@ -187,7 +187,7 @@ export function Items() {
           <meshBasicMaterial color="#f8f0d8" side={2} />
         </mesh>
       </group>
-      {scene ? null : null}
+      
     </group>
   );
 }
