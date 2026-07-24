@@ -24,6 +24,9 @@ type Critter = {
   heading: number;
   speed: number;
   phase: number;
+  lastCheckT: number;
+  lastCheckX: number;
+  lastCheckZ: number;
 };
 
 function makeCritters(count: number, seed: number, speed: number, species: "rabbit" | "fox"): Critter[] {
