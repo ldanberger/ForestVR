@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { survivalState } from "./survivalState";
+import { survivalState, eatFromBackpack, resetSurvival } from "./survivalState";
 
 export function SurvivalHUD() {
   const [, tick] = useState(0);
@@ -15,6 +15,8 @@ export function SurvivalHUD() {
 
   const food = Math.max(0, Math.min(100, survivalState.food));
   const water = Math.max(0, Math.min(100, survivalState.water));
+  const backpack = survivalState.backpack;
+  const gameOver = survivalState.gameOver;
 
   const bar = (label: string, val: number, color: string) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -47,25 +49,106 @@ export function SurvivalHUD() {
   );
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: 16,
-        left: 16,
-        zIndex: 10,
-        width: 240,
-        padding: "10px 12px",
-        background: "rgba(0,0,0,0.55)",
-        border: "1px solid #444",
-        borderRadius: 8,
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        pointerEvents: "none",
-      }}
-    >
-      {bar("Food", food, "#e26a1f")}
-      {bar("Water", water, "#3aa0e0")}
-    </div>
+    <>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 16,
+          left: 16,
+          zIndex: 10,
+          width: 260,
+          padding: "10px 12px",
+          background: "rgba(0,0,0,0.55)",
+          border: "1px solid #444",
+          borderRadius: 8,
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}
+      >
+        {bar("Food", food, "#e26a1f")}
+        {bar("Water", water, "#3aa0e0")}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 4,
+            color: "#fff",
+            fontFamily: "sans-serif",
+            fontSize: 12,
+          }}
+        >
+          <span style={{ width: 46 }}>🎒</span>
+          <span style={{ flex: 1 }}>Carrots: {backpack}</span>
+          <button
+            onClick={eatFromBackpack}
+            disabled={backpack <= 0 || gameOver}
+            style={{
+              padding: "4px 10px",
+              fontSize: 12,
+              fontWeight: 600,
+              background: backpack > 0 && !gameOver ? "#e26a1f" : "#555",
+              color: "#fff",
+              border: "1px solid rgba(0,0,0,0.5)",
+              borderRadius: 6,
+              cursor: backpack > 0 && !gameOver ? "pointer" : "not-allowed",
+            }}
+          >
+            Eat 1
+          </button>
+        </div>
+      </div>
+
+      {gameOver && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.7)",
+            fontFamily: "sans-serif",
+            color: "#fff",
+          }}
+        >
+          <div
+            style={{
+              background: "#1a1a1a",
+              border: "1px solid #555",
+              borderRadius: 12,
+              padding: "28px 36px",
+              textAlign: "center",
+              maxWidth: 360,
+            }}
+          >
+            <h1 style={{ margin: 0, fontSize: 32, color: "#e26a1f" }}>Game Over</h1>
+            <p style={{ marginTop: 12, fontSize: 15, lineHeight: 1.5 }}>
+              {food <= 0 ? "You starved." : "You died of thirst."}
+              <br />
+              Manage food and water to survive longer.
+            </p>
+            <button
+              onClick={() => resetSurvival()}
+              style={{
+                marginTop: 16,
+                padding: "10px 20px",
+                fontSize: 15,
+                fontWeight: 600,
+                background: "#3aa0e0",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              Restart
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
