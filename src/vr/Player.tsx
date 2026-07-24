@@ -3,6 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { XROrigin, useXRInputSourceState, useXR } from "@react-three/xr";
 import * as THREE from "three";
 import { heightAt } from "./useHeightAt";
+import { playerState } from "./playerState";
 
 const EYE_HEIGHT = 1.6;
 const MOVE_SPEED = 4;
@@ -128,6 +129,15 @@ export function Player() {
         camera.position.z += mv.z * MOVE_SPEED * dt;
       }
       camera.position.y = heightAt(camera.position.x, camera.position.z) + EYE_HEIGHT;
+    }
+
+    // Publish player state for HUD (minimap etc.)
+    if (inXR && originRef.current) {
+      playerState.pos.copy(originRef.current.position);
+      playerState.yaw = originRef.current.rotation.y;
+    } else {
+      playerState.pos.copy(camera.position);
+      playerState.yaw = yaw.current;
     }
   });
 

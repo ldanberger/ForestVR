@@ -8,12 +8,14 @@ import { Trees, Rocks, GrassBlades } from "./Scatter";
 import { Rabbits, Foxes } from "./Animals";
 import { Player } from "./Player";
 import { Items } from "./Items";
+import { Minimap } from "./Minimap";
 
 const store = createXRStore();
 
 export default function ForestVR() {
   return (
     <div style={{ position: "fixed", inset: 0, background: "#88b4d8" }}>
+      <Minimap />
       <div
         style={{
           position: "absolute",
