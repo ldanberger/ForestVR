@@ -29,16 +29,18 @@ function makeCritters(count: number, seed: number, speed: number): Critter[] {
   return arr;
 }
 
-function useWander(critters: Critter[], groupRef: React.RefObject<THREE.Group | null>, bounce: number) {
+function useWander(
+  critters: Critter[],
+  groupRef: React.RefObject<THREE.Group | null>,
+  animate: (child: THREE.Object3D, t: number, phase: number, movingSpeed: number) => void,
+) {
   useFrame((state, dt) => {
     const t = state.clock.elapsedTime;
     if (!groupRef.current) return;
     critters.forEach((c, i) => {
-      // Occasional heading change
       if (Math.sin(t * 0.3 + i) > 0.995) c.heading += (Math.random() - 0.5) * 1.2;
       c.pos.x += Math.cos(c.heading) * c.speed * dt;
       c.pos.z += Math.sin(c.heading) * c.speed * dt;
-      // Stay out of stream and inside area
       if (Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5 || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
         c.heading += Math.PI;
         c.pos.x += Math.cos(c.heading) * c.speed * dt * 2;
@@ -47,85 +49,241 @@ function useWander(critters: Critter[], groupRef: React.RefObject<THREE.Group | 
       c.pos.y = heightAt(c.pos.x, c.pos.z);
       const child = groupRef.current!.children[i] as THREE.Object3D | undefined;
       if (child) {
-        const hop = Math.abs(Math.sin(t * 6 + c.phase)) * bounce;
-        child.position.set(c.pos.x, c.pos.y + hop, c.pos.z);
+        child.position.set(c.pos.x, c.pos.y, c.pos.z);
         child.rotation.y = -c.heading + Math.PI / 2;
+        animate(child, t, c.phase, c.speed);
       }
     });
   });
 }
 
+/* -------------- RABBIT -------------- */
+
+function RabbitMesh() {
+  // Named parts so we can animate them
+  return (
+    <group>
+      {/* body */}
+      <mesh name="body" position={[0, 0.22, 0]} castShadow>
+        <sphereGeometry args={[0.22, 16, 12]} />
+        <meshStandardMaterial color="#c8b89a" roughness={0.95} />
+      </mesh>
+      {/* haunches */}
+      <mesh position={[-0.14, 0.2, 0]} castShadow>
+        <sphereGeometry args={[0.17, 12, 10]} />
+        <meshStandardMaterial color="#b8a888" roughness={0.95} />
+      </mesh>
+      {/* head */}
+      <mesh name="head" position={[0.22, 0.32, 0]} castShadow>
+        <sphereGeometry args={[0.14, 14, 12]} />
+        <meshStandardMaterial color="#d1c1a3" roughness={0.95} />
+      </mesh>
+      {/* cheeks */}
+      <mesh position={[0.3, 0.28, 0.06]} castShadow>
+        <sphereGeometry args={[0.06, 10, 8]} />
+        <meshStandardMaterial color="#d1c1a3" />
+      </mesh>
+      <mesh position={[0.3, 0.28, -0.06]} castShadow>
+        <sphereGeometry args={[0.06, 10, 8]} />
+        <meshStandardMaterial color="#d1c1a3" />
+      </mesh>
+      {/* nose */}
+      <mesh position={[0.34, 0.31, 0]} castShadow>
+        <sphereGeometry args={[0.025, 8, 6]} />
+        <meshStandardMaterial color="#3a2018" roughness={0.6} />
+      </mesh>
+      {/* eyes */}
+      <mesh position={[0.28, 0.36, 0.08]}>
+        <sphereGeometry args={[0.018, 8, 6]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      <mesh position={[0.28, 0.36, -0.08]}>
+        <sphereGeometry args={[0.018, 8, 6]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      {/* ears */}
+      <mesh name="earL" position={[0.2, 0.5, 0.07]} rotation={[0, 0, -0.15]} castShadow>
+        <capsuleGeometry args={[0.028, 0.22, 4, 8]} />
+        <meshStandardMaterial color="#c8b89a" />
+      </mesh>
+      <mesh name="earR" position={[0.2, 0.5, -0.07]} rotation={[0, 0, -0.15]} castShadow>
+        <capsuleGeometry args={[0.028, 0.22, 4, 8]} />
+        <meshStandardMaterial color="#c8b89a" />
+      </mesh>
+      {/* fluff tail */}
+      <mesh position={[-0.24, 0.24, 0]} castShadow>
+        <sphereGeometry args={[0.07, 10, 8]} />
+        <meshStandardMaterial color="#f2ead6" roughness={1} />
+      </mesh>
+      {/* front paws */}
+      <mesh name="pawFL" position={[0.12, 0.06, 0.08]} castShadow>
+        <sphereGeometry args={[0.04, 8, 6]} />
+        <meshStandardMaterial color="#b09880" />
+      </mesh>
+      <mesh name="pawFR" position={[0.12, 0.06, -0.08]} castShadow>
+        <sphereGeometry args={[0.04, 8, 6]} />
+        <meshStandardMaterial color="#b09880" />
+      </mesh>
+      {/* back paws */}
+      <mesh name="pawBL" position={[-0.14, 0.06, 0.1]} rotation={[0, 0, 0.2]} castShadow>
+        <capsuleGeometry args={[0.045, 0.08, 4, 6]} />
+        <meshStandardMaterial color="#b09880" />
+      </mesh>
+      <mesh name="pawBR" position={[-0.14, 0.06, -0.1]} rotation={[0, 0, 0.2]} castShadow>
+        <capsuleGeometry args={[0.045, 0.08, 4, 6]} />
+        <meshStandardMaterial color="#b09880" />
+      </mesh>
+    </group>
+  );
+}
+
 export function Rabbits() {
-  const critters = useMemo(() => makeCritters(8, 4242, 1.2), []);
+  const critters = useMemo(() => makeCritters(10, 4242, 1.2), []);
   const groupRef = useRef<THREE.Group>(null);
-  useWander(critters, groupRef, 0.15);
+  useWander(critters, groupRef, (child, t, phase) => {
+    const hop = Math.max(0, Math.sin(t * 5 + phase)) * 0.22;
+    child.position.y += hop;
+    // Body pitch during hop
+    const pitch = Math.cos(t * 5 + phase) * 0.15;
+    child.rotation.x = pitch;
+    // Ear twitch
+    const earL = child.getObjectByName("earL");
+    const earR = child.getObjectByName("earR");
+    if (earL) earL.rotation.z = -0.15 + Math.sin(t * 3 + phase) * 0.1;
+    if (earR) earR.rotation.z = -0.15 - Math.sin(t * 3 + phase) * 0.1;
+  });
   return (
     <group ref={groupRef}>
       {critters.map((_, i) => (
         <group key={i}>
-          <mesh position={[0, 0.15, 0]} castShadow>
-            <sphereGeometry args={[0.18, 8, 6]} />
-            <meshStandardMaterial color="#d9cbb0" roughness={1} />
-          </mesh>
-          <mesh position={[0.15, 0.22, 0]} castShadow>
-            <sphereGeometry args={[0.11, 8, 6]} />
-            <meshStandardMaterial color="#d9cbb0" roughness={1} />
-          </mesh>
-          {/* ears */}
-          <mesh position={[0.18, 0.36, 0.05]} rotation={[0, 0, -0.2]} castShadow>
-            <coneGeometry args={[0.03, 0.15, 5]} />
-            <meshStandardMaterial color="#d9cbb0" />
-          </mesh>
-          <mesh position={[0.18, 0.36, -0.05]} rotation={[0, 0, -0.2]} castShadow>
-            <coneGeometry args={[0.03, 0.15, 5]} />
-            <meshStandardMaterial color="#d9cbb0" />
-          </mesh>
+          <RabbitMesh />
         </group>
       ))}
     </group>
   );
 }
 
+/* -------------- FOX -------------- */
+
+function FoxMesh() {
+  return (
+    <group>
+      {/* body */}
+      <mesh position={[0, 0.3, 0]} castShadow>
+        <capsuleGeometry args={[0.14, 0.4, 6, 12]} rotation={[0, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#c65a1e" roughness={0.9} />
+      </mesh>
+      {/* underbelly */}
+      <mesh position={[0, 0.22, 0]} scale={[1.02, 0.6, 0.9]} castShadow>
+        <capsuleGeometry args={[0.11, 0.36, 4, 8]} rotation={[0, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#f5e6cc" roughness={1} />
+      </mesh>
+      {/* chest ruff */}
+      <mesh position={[0.22, 0.3, 0]} castShadow>
+        <sphereGeometry args={[0.13, 12, 10]} />
+        <meshStandardMaterial color="#d86a26" roughness={0.9} />
+      </mesh>
+      {/* head */}
+      <mesh name="head" position={[0.36, 0.4, 0]} castShadow>
+        <sphereGeometry args={[0.14, 14, 12]} />
+        <meshStandardMaterial color="#d86a26" />
+      </mesh>
+      {/* snout */}
+      <mesh position={[0.5, 0.36, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
+        <coneGeometry args={[0.06, 0.14, 8]} />
+        <meshStandardMaterial color="#2a1a10" />
+      </mesh>
+      {/* nose tip */}
+      <mesh position={[0.57, 0.37, 0]}>
+        <sphereGeometry args={[0.022, 8, 6]} />
+        <meshStandardMaterial color="#0a0603" />
+      </mesh>
+      {/* eyes */}
+      <mesh position={[0.44, 0.44, 0.08]}>
+        <sphereGeometry args={[0.02, 8, 6]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      <mesh position={[0.44, 0.44, -0.08]}>
+        <sphereGeometry args={[0.02, 8, 6]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      {/* ears */}
+      <mesh position={[0.3, 0.55, 0.09]} rotation={[0, 0, -0.2]} castShadow>
+        <coneGeometry args={[0.05, 0.14, 6]} />
+        <meshStandardMaterial color="#c65a1e" />
+      </mesh>
+      <mesh position={[0.3, 0.55, -0.09]} rotation={[0, 0, -0.2]} castShadow>
+        <coneGeometry args={[0.05, 0.14, 6]} />
+        <meshStandardMaterial color="#c65a1e" />
+      </mesh>
+      {/* ear inners */}
+      <mesh position={[0.31, 0.55, 0.09]} rotation={[0, 0, -0.2]}>
+        <coneGeometry args={[0.03, 0.11, 6]} />
+        <meshStandardMaterial color="#2a1a10" />
+      </mesh>
+      <mesh position={[0.31, 0.55, -0.09]} rotation={[0, 0, -0.2]}>
+        <coneGeometry args={[0.03, 0.11, 6]} />
+        <meshStandardMaterial color="#2a1a10" />
+      </mesh>
+      {/* tail — bushy */}
+      <group name="tail" position={[-0.28, 0.32, 0]} rotation={[0, 0, 0.4]}>
+        <mesh position={[-0.05, 0, 0]} castShadow>
+          <sphereGeometry args={[0.11, 12, 10]} />
+          <meshStandardMaterial color="#c65a1e" roughness={1} />
+        </mesh>
+        <mesh position={[-0.18, 0.04, 0]} castShadow>
+          <sphereGeometry args={[0.1, 12, 10]} />
+          <meshStandardMaterial color="#d86a26" roughness={1} />
+        </mesh>
+        <mesh position={[-0.3, 0.08, 0]} castShadow>
+          <sphereGeometry args={[0.09, 12, 10]} />
+          <meshStandardMaterial color="#f5e6cc" roughness={1} />
+        </mesh>
+      </group>
+      {/* legs */}
+      {[
+        ["legFL", 0.22, 0.09],
+        ["legFR", 0.22, -0.09],
+        ["legBL", -0.18, 0.1],
+        ["legBR", -0.18, -0.1],
+      ].map(([name, x, z]) => (
+        <mesh key={name as string} name={name as string} position={[x as number, 0.11, z as number]} castShadow>
+          <capsuleGeometry args={[0.035, 0.18, 4, 6]} />
+          <meshStandardMaterial color="#2a1a10" />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export function Foxes() {
-  const critters = useMemo(() => makeCritters(4, 7373, 1.8), []);
+  const critters = useMemo(() => makeCritters(5, 7373, 1.9), []);
   const groupRef = useRef<THREE.Group>(null);
-  useWander(critters, groupRef, 0.08);
+  useWander(critters, groupRef, (child, t, phase) => {
+    // Subtle bob
+    child.position.y += Math.abs(Math.sin(t * 6 + phase)) * 0.05;
+    // Leg swing
+    const swing = Math.sin(t * 8 + phase) * 0.5;
+    const fl = child.getObjectByName("legFL");
+    const fr = child.getObjectByName("legFR");
+    const bl = child.getObjectByName("legBL");
+    const br = child.getObjectByName("legBR");
+    if (fl) fl.rotation.z = swing;
+    if (fr) fr.rotation.z = -swing;
+    if (bl) bl.rotation.z = -swing;
+    if (br) br.rotation.z = swing;
+    // Tail swish
+    const tail = child.getObjectByName("tail");
+    if (tail) tail.rotation.y = Math.sin(t * 3 + phase) * 0.4;
+    // Head bob
+    const head = child.getObjectByName("head");
+    if (head) head.rotation.y = Math.sin(t * 1.5 + phase) * 0.15;
+  });
   return (
     <group ref={groupRef}>
       {critters.map((_, i) => (
         <group key={i}>
-          {/* body */}
-          <mesh position={[0, 0.28, 0]} castShadow>
-            <boxGeometry args={[0.55, 0.22, 0.22]} />
-            <meshStandardMaterial color="#c85a1e" roughness={1} />
-          </mesh>
-          {/* head */}
-          <mesh position={[0.3, 0.36, 0]} castShadow>
-            <boxGeometry args={[0.22, 0.18, 0.2]} />
-            <meshStandardMaterial color="#c85a1e" />
-          </mesh>
-          {/* snout */}
-          <mesh position={[0.44, 0.32, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
-            <coneGeometry args={[0.06, 0.14, 5]} />
-            <meshStandardMaterial color="#3a2a1e" />
-          </mesh>
-          {/* tail */}
-          <mesh position={[-0.32, 0.3, 0]} rotation={[0, 0, 0.4]} castShadow>
-            <coneGeometry args={[0.08, 0.35, 6]} />
-            <meshStandardMaterial color="#e8e2d0" />
-          </mesh>
-          {/* legs */}
-          {[
-            [0.18, 0, 0.09],
-            [0.18, 0, -0.09],
-            [-0.18, 0, 0.09],
-            [-0.18, 0, -0.09],
-          ].map((p, k) => (
-            <mesh key={k} position={p as [number, number, number]} castShadow>
-              <boxGeometry args={[0.06, 0.2, 0.06]} />
-              <meshStandardMaterial color="#3a2a1e" />
-            </mesh>
-          ))}
+          <FoxMesh />
         </group>
       ))}
     </group>
