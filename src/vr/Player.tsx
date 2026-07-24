@@ -11,6 +11,7 @@ import {
   WATER_GAIN_PER_S,
 } from "./survivalState";
 import { STREAM_HALF_WIDTH } from "./useHeightAt";
+import { tagState, playerCaughtAnimal, CATCH_RADIUS } from "./tagState";
 
 const EYE_HEIGHT = 1.6;
 const MOVE_SPEED = 4;
@@ -162,6 +163,20 @@ export function Player() {
     }
     if (survivalState.food <= 0 || survivalState.water <= 0) {
       survivalState.gameOver = true;
+    }
+
+    // Tag game: if player is "it", catch any nearby non-it animal.
+    if (tagState.playerIsIt) {
+      const r2 = CATCH_RADIUS * CATCH_RADIUS;
+      for (const other of tagState.critters) {
+        if (tagState.itIds.has(other.id)) continue;
+        const dx = other.pos.x - playerState.pos.x;
+        const dz = other.pos.z - playerState.pos.z;
+        if (dx * dx + dz * dz < r2) {
+          playerCaughtAnimal(other.id);
+          break;
+        }
+      }
     }
   });
 

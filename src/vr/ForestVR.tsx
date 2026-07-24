@@ -11,6 +11,7 @@ import { Items } from "./Items";
 import { Carrots } from "./Carrots";
 import { Minimap } from "./Minimap";
 import { SurvivalHUD } from "./SurvivalHUD";
+import { TagHUD } from "./TagHUD";
 
 const store = createXRStore();
 
@@ -19,6 +20,7 @@ export default function ForestVR() {
     <div style={{ position: "fixed", inset: 0, background: "#88b4d8" }}>
       <Minimap />
       <SurvivalHUD />
+      <TagHUD />
       <div
         style={{
           position: "absolute",
