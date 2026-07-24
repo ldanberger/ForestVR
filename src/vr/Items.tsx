@@ -84,7 +84,7 @@ export function Items() {
 
   const left = useXRInputSourceState("controller", "left");
   const right = useXRInputSourceState("controller", "right");
-  const scene = useThree((s) => s.scene);
+  
 
   const refs = useRef<(THREE.Group | null)[]>([]);
   const prevSelect = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
