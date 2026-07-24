@@ -45,6 +45,9 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       heading: Math.random() * Math.PI * 2,
       speed,
       phase: Math.random() * Math.PI * 2,
+      lastCheckT: 0,
+      lastCheckX: x,
+      lastCheckZ: z,
     };
     arr.push(critter);
     // Register with tag system, sharing the same pos vector so movement is visible globally.
