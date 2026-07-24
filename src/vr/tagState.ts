@@ -17,9 +17,13 @@ export const FLEE_RADIUS = 18;
 export const IT_SPEED_MULT = 1.55;
 export const FLEE_SPEED_MULT = 1.35;
 
+export const IT_FREEZE_SECONDS = 10;
+
 export const tagState = {
   playerIsIt: true,
   itIds: new Set<number>(),
+  /** Wall-clock ms when each animal became "it"; used to freeze them briefly. */
+  itSince: new Map<number, number>(),
   critters: [] as TagCritter[],
   version: 0,
 };
@@ -36,6 +40,7 @@ export function registerCritter(c: TagCritter) {
 export function tagAnimal(id: number) {
   if (!tagState.itIds.has(id)) {
     tagState.itIds.add(id);
+    tagState.itSince.set(id, performance.now());
     tagState.version++;
   }
 }
@@ -44,6 +49,7 @@ export function tagAnimal(id: number) {
 export function playerCaught() {
   tagState.playerIsIt = true;
   tagState.itIds.clear();
+  tagState.itSince.clear();
   tagState.version++;
 }
 
@@ -51,6 +57,14 @@ export function playerCaught() {
 export function playerCaughtAnimal(id: number) {
   tagState.playerIsIt = false;
   tagState.itIds.clear();
+  tagState.itSince.clear();
   tagState.itIds.add(id);
+  tagState.itSince.set(id, performance.now());
   tagState.version++;
+}
+
+export function isFrozen(id: number) {
+  const since = tagState.itSince.get(id);
+  if (since === undefined) return false;
+  return performance.now() - since < IT_FREEZE_SECONDS * 1000;
 }
