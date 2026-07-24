@@ -1,9 +1,10 @@
 import { Canvas } from "@react-three/fiber";
-import { Sky } from "@react-three/drei";
+import { Sky, Environment, SoftShadows, Cloud, Clouds } from "@react-three/drei";
 import { XR, createXRStore } from "@react-three/xr";
+import * as THREE from "three";
 import { Terrain } from "./Terrain";
 import { Stream } from "./Stream";
-import { Trees, Rocks } from "./Scatter";
+import { Trees, Rocks, GrassBlades } from "./Scatter";
 import { Rabbits, Foxes } from "./Animals";
 import { Player } from "./Player";
 import { Items } from "./Items";
