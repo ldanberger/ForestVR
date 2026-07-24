@@ -124,6 +124,20 @@ export function Minimap() {
         }
         ctx.putImageData(overlay, 0, 0);
 
+        // Found carrots (picked up by player) shown as orange dots
+        for (const c of survivalState.carrots) {
+          if (!c.foundByPlayer) continue;
+          const mx = worldToPx(c.x);
+          const my = worldToPx(c.z);
+          ctx.fillStyle = "#e26a1f";
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.arc(mx, my, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
         // Player marker (triangle pointing along yaw)
         ctx.save();
         ctx.translate(cx, cy);
