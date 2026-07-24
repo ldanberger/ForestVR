@@ -345,12 +345,11 @@ function FoxMesh() {
 }
 
 export function Foxes() {
-  const critters = useMemo(() => makeCritters(5, 7373, 1.9), []);
+  const critters = useMemo(() => makeCritters(5, 7373, 1.9, "fox"), []);
   const groupRef = useRef<THREE.Group>(null);
-  useWander(critters, groupRef, (child, t, phase) => {
-    // Subtle bob
+  useWander(critters, groupRef, (child, t, c) => {
+    const phase = c.phase;
     child.position.y += Math.abs(Math.sin(t * 6 + phase)) * 0.05;
-    // Leg swing
     const swing = Math.sin(t * 8 + phase) * 0.5;
     const fl = child.getObjectByName("legFL");
     const fr = child.getObjectByName("legFR");
@@ -360,10 +359,8 @@ export function Foxes() {
     if (fr) fr.rotation.z = -swing;
     if (bl) bl.rotation.z = -swing;
     if (br) br.rotation.z = swing;
-    // Tail swish
     const tail = child.getObjectByName("tail");
     if (tail) tail.rotation.y = Math.sin(t * 3 + phase) * 0.4;
-    // Head bob
     const head = child.getObjectByName("head");
     if (head) head.rotation.y = Math.sin(t * 1.5 + phase) * 0.15;
   });
@@ -372,6 +369,7 @@ export function Foxes() {
       {critters.map((_, i) => (
         <group key={i}>
           <FoxMesh />
+          <ItMark />
         </group>
       ))}
     </group>
