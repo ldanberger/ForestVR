@@ -328,20 +328,43 @@ export function Trees() {
 
 export function Rocks() {
   const positions = useMemo(() => scatterPoints(120, 7, { minY: -1, maxY: 20 }), []);
-  const { colorMap, normalMap } = useMemo(() => makeRockTextures(256), []);
+  const { colorMap, normalMap, roughnessMap } = useMemo(() => makeRockTextures(512), []);
 
-  // Pre-generate a few varied rock geometries for diversity
+  // Pre-generate varied rock geometries: chunky boulders, flat slabs, sharp shards.
   const geos = useMemo(() => {
     const list: THREE.BufferGeometry[] = [];
-    for (let n = 0; n < 5; n++) {
-      const g = new THREE.IcosahedronGeometry(0.8, 2);
+    const shapes: Array<"boulder" | "slab" | "shard" | "pebble"> = [
+      "boulder", "boulder", "slab", "shard", "pebble", "boulder", "slab",
+    ];
+    for (let n = 0; n < shapes.length; n++) {
+      const shape = shapes[n];
+      const detail = shape === "pebble" ? 1 : 2;
+      const g = new THREE.IcosahedronGeometry(0.8, detail);
       const pos = g.attributes.position as THREE.BufferAttribute;
       const rand = rng(1000 + n * 17);
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-        const jitter = 0.7 + rand() * 0.6;
-        const flatten = 0.6 + rand() * 0.5;
-        pos.setXYZ(i, x * jitter, y * flatten * (0.7 + rand() * 0.4), z * jitter);
+        let nx = x, ny = y, nz = z;
+        if (shape === "boulder") {
+          const jitter = 0.75 + rand() * 0.55;
+          const flatten = 0.55 + rand() * 0.4;
+          nx = x * jitter; ny = y * flatten * (0.75 + rand() * 0.35); nz = z * jitter;
+        } else if (shape === "slab") {
+          const spread = 1.1 + rand() * 0.5;
+          nx = x * spread; ny = y * (0.25 + rand() * 0.15); nz = z * spread;
+        } else if (shape === "shard") {
+          const taperY = 0.5 + (y + 0.8) * 0.6;
+          const jitter = 0.7 + rand() * 0.5;
+          nx = x * jitter * taperY;
+          ny = y * (1.15 + rand() * 0.35);
+          nz = z * jitter * taperY;
+        } else {
+          const j = 0.85 + rand() * 0.4;
+          nx = x * j; ny = y * j * 0.75; nz = z * j;
+        }
+        // Fine surface bumpiness on top of shape
+        const bump = 1 + (rand() - 0.5) * 0.18;
+        pos.setXYZ(i, nx * bump, ny * bump, nz * bump);
       }
       g.computeVertexNormals();
       list.push(g);
@@ -353,31 +376,61 @@ export function Rocks() {
     () => new THREE.MeshStandardMaterial({
       map: colorMap,
       normalMap,
-      normalScale: new THREE.Vector2(1.4, 1.4),
-      color: "#8a8478",
-      roughness: 0.9,
-      metalness: 0.05,
+      roughnessMap,
+      normalScale: new THREE.Vector2(1.6, 1.6),
+      color: "#9a9488",
+      roughness: 1,
+      metalness: 0.04,
+      envMapIntensity: 0.7,
     }),
-    [colorMap, normalMap],
+    [colorMap, normalMap, roughnessMap],
   );
 
   return (
     <group>
       {positions.map((p, i) => {
-        const s = 0.5 + ((i * 13) % 100) / 60;
         const geo = geos[i % geos.length];
-        return (
+        const isPebble = geos[i % geos.length] === geos[4];
+        const s = isPebble ? 0.25 + ((i * 11) % 100) / 220 : 0.55 + ((i * 13) % 100) / 55;
+        const sink = isPebble ? 0.05 : 0.18 + ((i * 7) % 100) / 500;
+        const rocks: JSX.Element[] = [
           <mesh
-            key={i}
+            key={`${i}-main`}
             geometry={geo}
             material={mat}
-            position={[p.x, p.y - 0.05 * s, p.z]}
-            rotation={[i * 0.3, i * 0.7, i * 0.5]}
-            scale={[s, s * (0.6 + ((i * 19) % 100) / 200), s]}
+            position={[p.x, p.y - sink * s, p.z]}
+            rotation={[(i * 0.31) % Math.PI, (i * 0.7) % (Math.PI * 2), (i * 0.53) % Math.PI]}
+            scale={[s, s * (0.55 + ((i * 19) % 100) / 200), s * (0.9 + ((i * 23) % 100) / 300)]}
             castShadow
             receiveShadow
-          />
-        );
+          />,
+        ];
+        // Cluster: add 1–2 smaller companion rocks around larger boulders
+        if (!isPebble && (i * 17) % 5 < 3) {
+          const companions = 1 + ((i * 13) % 2);
+          for (let k = 0; k < companions; k++) {
+            const ang = ((i * 1.3 + k * 2.1) % (Math.PI * 2));
+            const dist = s * (0.9 + ((i + k) % 5) * 0.15);
+            const cx = p.x + Math.cos(ang) * dist;
+            const cz = p.z + Math.sin(ang) * dist;
+            const cy = heightAt(cx, cz);
+            const cs = s * (0.35 + ((i * 3 + k * 7) % 100) / 300);
+            const cgeo = geos[(i + k + 3) % geos.length];
+            rocks.push(
+              <mesh
+                key={`${i}-c${k}`}
+                geometry={cgeo}
+                material={mat}
+                position={[cx, cy - 0.1 * cs, cz]}
+                rotation={[(i + k) * 0.4, (i + k) * 0.9, (i + k) * 0.6]}
+                scale={[cs, cs * 0.7, cs * 0.95]}
+                castShadow
+                receiveShadow
+              />,
+            );
+          }
+        }
+        return <group key={i}>{rocks}</group>;
       })}
     </group>
   );
