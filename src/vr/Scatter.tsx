@@ -83,10 +83,11 @@ function makeBarkTextures(size = 256) {
   return { colorMap: cTex, normalMap: nTex };
 }
 
-/* --------- Procedural rock texture --------- */
-function makeRockTextures(size = 256) {
+/* --------- Procedural rock texture (weathered granite) --------- */
+function makeRockTextures(size = 512) {
   const color = new Uint8Array(size * size * 4);
   const normal = new Uint8Array(size * size * 4);
+  const rough = new Uint8Array(size * size * 4);
   const heightGrid = new Float32Array(size * size);
   const hash = (x: number, y: number) => {
     const s = Math.sin(x * 91.3 + y * 47.9) * 21343.13;
@@ -100,27 +101,94 @@ function makeRockTextures(size = 256) {
     const c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
     return THREE.MathUtils.lerp(THREE.MathUtils.lerp(a, b, u), THREE.MathUtils.lerp(c, d, u), v);
   };
+  const fbm = (x: number, y: number, oct: number) => {
+    let h = 0, a = 0.5, f = 1;
+    for (let o = 0; o < oct; o++) { h += noise(x * f, y * f) * a; a *= 0.5; f *= 2.03; }
+    return h;
+  };
+  // Worley-ish cell noise for cracks & pebble grain
+  const cell = (x: number, y: number, scale: number) => {
+    const gx = Math.floor(x * scale), gy = Math.floor(y * scale);
+    let d1 = 10, d2 = 10;
+    for (let jy = -1; jy <= 1; jy++) {
+      for (let jx = -1; jx <= 1; jx++) {
+        const cx = gx + jx, cy = gy + jy;
+        const px = cx + hash(cx, cy);
+        const py = cy + hash(cx + 33, cy + 77);
+        const dx = px - x * scale, dy = py - y * scale;
+        const d = Math.hypot(dx, dy);
+        if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) { d2 = d; }
+      }
+    }
+    return { edge: d2 - d1, dist: d1 };
+  };
+
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      let h = 0, a = 0.5, f = 0.05;
-      for (let o = 0; o < 5; o++) { h += noise(x * f, y * f) * a; a *= 0.5; f *= 2.1; }
+      const u = x / size, v = y / size;
+      // Layered height: broad bumps + medium ridges + fine grain
+      const big = fbm(u * 3, v * 3, 4);
+      const med = fbm(u * 9 + 5, v * 9 + 3, 4);
+      const grain = fbm(u * 48, v * 48, 3) * 0.35;
+      const pebble = cell(u, v, 22);
+      const bump = big * 0.55 + med * 0.35 + grain * 0.25 + (1 - Math.min(pebble.dist, 0.5)) * 0.08;
+      // Cracks: thin dark lines along cell edges (small edge distance = crack)
+      const crackEdge = Math.max(0, 0.06 - pebble.edge) / 0.06;
+      const crack = Math.pow(crackEdge, 1.5);
+      const h = bump - crack * 0.25;
       heightGrid[y * size + x] = h;
-      const crack = Math.pow(1 - Math.abs(noise(x * 0.03, y * 0.03) - 0.5) * 2, 8);
-      const v = 90 + h * 120 - crack * 60;
-      const moss = Math.max(0, noise(x * 0.02 + 5, y * 0.02) - 0.6) * 2;
+
+      // Base granite: warm-cool speckle
+      const speck = hash(x * 3.1, y * 3.1);
+      const feld = Math.pow(fbm(u * 90, v * 90, 2), 4); // bright feldspar flecks
+      const darkGrain = Math.pow(fbm(u * 60 + 11, v * 60 + 7, 2), 3);
+      let r = 118 + big * 55 + med * 25 - darkGrain * 60 + feld * 90 + speck * 8;
+      let g = 112 + big * 50 + med * 22 - darkGrain * 55 + feld * 82 + speck * 8;
+      let b = 104 + big * 45 + med * 20 - darkGrain * 55 + feld * 70 + speck * 8;
+
+      // Iron oxide stain (warm) in mid patches
+      const stain = Math.max(0, fbm(u * 4 + 3.7, v * 4 - 1.3, 3) - 0.55) * 2.2;
+      r += stain * 55;
+      g += stain * 25;
+      b += stain * 8;
+
+      // Cracks darken
+      r -= crack * 55; g -= crack * 55; b -= crack * 55;
+
+      // Moss in low pockets (where bump is low & stain is low)
+      const mossMask = Math.max(0, 0.55 - bump) * Math.max(0, fbm(u * 6 + 21, v * 6 + 42, 3) - 0.45);
+      const moss = Math.min(1, mossMask * 4);
+      r = THREE.MathUtils.lerp(r, 68, moss * 0.8);
+      g = THREE.MathUtils.lerp(g, 108, moss * 0.85);
+      b = THREE.MathUtils.lerp(b, 55, moss * 0.8);
+
+      // Lichen: pale grey-green blotches
+      const lichenMask = Math.max(0, fbm(u * 8 + 66, v * 8 + 11, 3) - 0.62) * 3;
+      const lichen = Math.min(1, lichenMask);
+      r = THREE.MathUtils.lerp(r, 175, lichen * 0.5);
+      g = THREE.MathUtils.lerp(g, 180, lichen * 0.55);
+      b = THREE.MathUtils.lerp(b, 160, lichen * 0.45);
+
       const i = (y * size + x) * 4;
-      color[i] = v * 0.9 * (1 - moss * 0.6);
-      color[i + 1] = v * 0.9 * (1 - moss * 0.2) + moss * 40;
-      color[i + 2] = v * 0.85 * (1 - moss * 0.7);
+      color[i] = Math.max(0, Math.min(255, r));
+      color[i + 1] = Math.max(0, Math.min(255, g));
+      color[i + 2] = Math.max(0, Math.min(255, b));
       color[i + 3] = 255;
+
+      // Roughness: moss & cracks rougher, feldspar shinier
+      const rgh = Math.max(0, Math.min(255,
+        220 - feld * 90 + crack * 20 + moss * 30 - stain * 20
+      ));
+      rough[i] = rgh; rough[i + 1] = rgh; rough[i + 2] = rgh; rough[i + 3] = 255;
     }
   }
+  // Normal from height (higher slope multiplier for punchier detail)
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const h = heightGrid[y * size + x];
       const hx = heightGrid[y * size + ((x + 1) % size)];
       const hy = heightGrid[((y + 1) % size) * size + x];
-      const dx = (hx - h) * 10, dy = (hy - h) * 10;
+      const dx = (hx - h) * 18, dy = (hy - h) * 18;
       const nx = -dx, ny = -dy, nz = 1;
       const len = Math.hypot(nx, ny, nz);
       const i = (y * size + x) * 4;
@@ -132,11 +200,16 @@ function makeRockTextures(size = 256) {
   }
   const cTex = new THREE.DataTexture(color, size, size, THREE.RGBAFormat);
   cTex.wrapS = cTex.wrapT = THREE.RepeatWrapping;
+  cTex.anisotropy = 8;
   cTex.needsUpdate = true;
   const nTex = new THREE.DataTexture(normal, size, size, THREE.RGBAFormat);
   nTex.wrapS = nTex.wrapT = THREE.RepeatWrapping;
+  nTex.anisotropy = 8;
   nTex.needsUpdate = true;
-  return { colorMap: cTex, normalMap: nTex };
+  const rTex = new THREE.DataTexture(rough, size, size, THREE.RGBAFormat);
+  rTex.wrapS = rTex.wrapT = THREE.RepeatWrapping;
+  rTex.needsUpdate = true;
+  return { colorMap: cTex, normalMap: nTex, roughnessMap: rTex };
 }
 
 /* --------- TREES (instanced, layered foliage) --------- */
