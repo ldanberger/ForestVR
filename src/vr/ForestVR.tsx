@@ -8,6 +8,7 @@ import { Trees, Rocks, GrassBlades } from "./Scatter";
 import { Rabbits, Foxes } from "./Animals";
 import { Player } from "./Player";
 import { Items } from "./Items";
+import { Minimap } from "./Minimap";
 
 const store = createXRStore();
 
