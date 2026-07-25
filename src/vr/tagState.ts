@@ -14,8 +14,9 @@ export type TagCritter = {
 
 export const CATCH_RADIUS = 1.1;
 export const FLEE_RADIUS = 18;
-export const IT_SPEED_MULT = 1.55;
-export const FLEE_SPEED_MULT = 1.35;
+// Player moves at 4 m/s, so "it" animals need to be clearly faster to catch up.
+export const IT_SPEED_MULT = 3.2;
+export const FLEE_SPEED_MULT = 1.6;
 
 export const IT_FREEZE_SECONDS = 10;
 
