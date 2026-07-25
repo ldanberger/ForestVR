@@ -11,6 +11,7 @@ import {
   playerCaught,
   playerCaughtAnimal,
   tagAnimal,
+  killAnimal,
   isFrozen,
   CATCH_RADIUS,
   FLEE_RADIUS,
@@ -28,6 +29,8 @@ type Critter = {
   lastCheckT: number;
   lastCheckX: number;
   lastCheckZ: number;
+  overlapT: number;
+  dead: boolean;
 };
 
 function makeCritters(count: number, seed: number, speed: number, species: "rabbit" | "fox"): Critter[] {
@@ -49,6 +52,8 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       lastCheckT: 0,
       lastCheckX: x,
       lastCheckZ: z,
+      overlapT: 0,
+      dead: false,
     };
     arr.push(critter);
   }
@@ -67,6 +72,11 @@ function useWander(
     const pz = playerState.pos.z;
 
     critters.forEach((c, i) => {
+      const child = groupRef.current!.children[i] as THREE.Object3D | undefined;
+      if (c.dead) {
+        if (child) child.visible = false;
+        return;
+      }
       const isIt = tagState.itIds.has(c.id);
       const dxp = px - c.pos.x;
       const dzp = pz - c.pos.z;
@@ -133,6 +143,7 @@ function useWander(
       // spot (especially "it" animals converging on the player or a fresh tag
       // target). Push both apart along their delta.
       const myR = (tagState.itIds.has(c.id) ? 2 : 1) * 0.45;
+      let overlappedThisFrame = false;
       for (const other of tagState.critters) {
         if (other.id === c.id) continue;
         const dx = c.pos.x - other.pos.x;
@@ -141,6 +152,7 @@ function useWander(
         const minD = myR + otherR;
         const d2 = dx * dx + dz * dz;
         if (d2 > 0 && d2 < minD * minD) {
+          overlappedThisFrame = true;
           const d = Math.sqrt(d2);
           const push = (minD - d) * 0.5;
           const nx = dx / d;
@@ -150,6 +162,20 @@ function useWander(
           other.pos.x -= nx * push;
           other.pos.z -= nz * push;
         }
+      }
+      if (overlappedThisFrame) {
+        c.overlapT += dt;
+        // Stuck together for too long: kill this one to unstick the pair.
+        // Only one dies per collision because the survivor's timer resets
+        // once nobody is overlapping it anymore.
+        if (c.overlapT > 1.5) {
+          c.dead = true;
+          killAnimal(c.id);
+          if (child) child.visible = false;
+          return;
+        }
+      } else {
+        c.overlapT = 0;
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
@@ -199,8 +225,8 @@ function useWander(
           }
         }
       }
-      const child = groupRef.current!.children[i] as THREE.Object3D | undefined;
       if (child) {
+        child.visible = true;
         child.position.set(c.pos.x, c.pos.y, c.pos.z);
         child.rotation.y = -c.heading + Math.PI / 2;
         // "It" animals grow to 2x size so they're easy to spot.
