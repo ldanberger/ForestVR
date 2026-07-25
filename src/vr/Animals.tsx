@@ -52,6 +52,8 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       lastCheckT: 0,
       lastCheckX: x,
       lastCheckZ: z,
+      overlapT: 0,
+      dead: false,
     };
     arr.push(critter);
   }
