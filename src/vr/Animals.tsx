@@ -72,6 +72,12 @@ function useWander(
     const pz = playerState.pos.z;
 
     critters.forEach((c, i) => {
+    critters.forEach((c, i) => {
+      const child = groupRef.current!.children[i] as THREE.Object3D | undefined;
+      if (c.dead) {
+        if (child) child.visible = false;
+        return;
+      }
       const isIt = tagState.itIds.has(c.id);
       const dxp = px - c.pos.x;
       const dzp = pz - c.pos.z;
