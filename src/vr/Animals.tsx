@@ -29,6 +29,8 @@ type Critter = {
   lastCheckT: number;
   lastCheckX: number;
   lastCheckZ: number;
+  overlapT: number;
+  dead: boolean;
 };
 
 function makeCritters(count: number, seed: number, speed: number, species: "rabbit" | "fox"): Critter[] {
