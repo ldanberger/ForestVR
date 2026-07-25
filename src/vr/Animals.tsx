@@ -13,6 +13,7 @@ import {
   tagAnimal,
   killAnimal,
   isFrozen,
+  inTagCooldown,
   CATCH_RADIUS,
   FLEE_RADIUS,
   IT_SPEED_MULT,
@@ -83,10 +84,12 @@ function useWander(
       const distP = Math.hypot(dxp, dzp) || 0.0001;
       let speed = c.speed;
       let steered = false;
+      const cooling = inTagCooldown();
+      // "It" animals are 2x scale, so their effective touch radius is bigger.
+      const itCatchR = CATCH_RADIUS * 1.6;
 
-      if (!isIt && tagState.playerIsIt && distP < CATCH_RADIUS) {
-        // The player catches the actual rendered critter, not a stale global
-        // registry entry. This prevents invisible/map-only animals becoming it.
+      if (!isIt && tagState.playerIsIt && !cooling && distP < CATCH_RADIUS) {
+        // Player (it) catches this rendered critter.
         playerCaughtAnimal(c.id);
         speed = 0;
         steered = true;
@@ -100,8 +103,11 @@ function useWander(
           c.heading = Math.atan2(dzp, dxp);
           speed = c.speed * IT_SPEED_MULT;
           steered = true;
-          if (distP < CATCH_RADIUS) {
+          if (!cooling && distP < itCatchR) {
             playerCaught();
+            // After swap this animal is no longer "it"; flee this frame so it
+            // moves out of catch range instead of oscillating.
+            c.heading = Math.atan2(-dzp, -dxp);
           } else {
             // Tag any non-it critter we brush against.
             const r2 = CATCH_RADIUS * CATCH_RADIUS;

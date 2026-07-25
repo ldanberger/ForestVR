@@ -27,7 +27,16 @@ export const tagState = {
   itSince: new Map<number, number>(),
   critters: [] as TagCritter[],
   version: 0,
+  /** Wall-clock ms of the last player<->animal tag swap. Prevents ping-pong
+   *  when the two are still touching on the frame after a catch. */
+  lastSwapAt: 0,
 };
+
+/** Seconds of immunity after any tag swap. */
+export const TAG_COOLDOWN_SECONDS = 1.2;
+export function inTagCooldown() {
+  return performance.now() - tagState.lastSwapAt < TAG_COOLDOWN_SECONDS * 1000;
+}
 
 let nextId = 1;
 export function nextCritterId() {
@@ -76,6 +85,7 @@ export function playerCaught() {
   tagState.playerIsIt = true;
   tagState.itIds.clear();
   tagState.itSince.clear();
+  tagState.lastSwapAt = performance.now();
   tagState.version++;
 }
 
@@ -86,6 +96,7 @@ export function playerCaughtAnimal(id: number) {
   tagState.itSince.clear();
   tagState.itIds.add(id);
   tagState.itSince.set(id, performance.now());
+  tagState.lastSwapAt = performance.now();
   tagState.version++;
 }
 
