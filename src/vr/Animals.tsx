@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
@@ -7,8 +7,9 @@ import { playerState } from "./playerState";
 import {
   tagState,
   nextCritterId,
-  registerCritter,
+  registerCrittersForSpecies,
   playerCaught,
+  playerCaughtAnimal,
   tagAnimal,
   isFrozen,
   CATCH_RADIUS,
@@ -50,8 +51,6 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       lastCheckZ: z,
     };
     arr.push(critter);
-    // Register with tag system, sharing the same pos vector so movement is visible globally.
-    registerCritter({ id: critter.id, pos: critter.pos, species });
   }
   return arr;
 }
@@ -75,7 +74,13 @@ function useWander(
       let speed = c.speed;
       let steered = false;
 
-      if (isIt) {
+      if (!isIt && tagState.playerIsIt && distP < CATCH_RADIUS) {
+        // The player catches the actual rendered critter, not a stale global
+        // registry entry. This prevents invisible/map-only animals becoming it.
+        playerCaughtAnimal(c.id);
+        speed = 0;
+        steered = true;
+      } else if (isIt) {
         if (isFrozen(c.id)) {
           // Freshly tagged: stand still for a few seconds.
           speed = 0;
@@ -117,7 +122,7 @@ function useWander(
 
       c.pos.x += Math.cos(c.heading) * speed * dt;
       c.pos.z += Math.sin(c.heading) * speed * dt;
-      if (Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5 || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
+      if ((!isIt && Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5) || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
         c.heading += Math.PI;
         c.pos.x += Math.cos(c.heading) * speed * dt * 2;
         c.pos.z += Math.sin(c.heading) * speed * dt * 2;
@@ -301,6 +306,12 @@ function RabbitMesh() {
 export function Rabbits() {
   const critters = useMemo(() => makeCritters(20, 4242, 1.2, "rabbit"), []);
   const groupRef = useRef<THREE.Group>(null);
+  useEffect(() => {
+    return registerCrittersForSpecies(
+      "rabbit",
+      critters.map((c) => ({ id: c.id, pos: c.pos, species: c.species })),
+    );
+  }, [critters]);
   useWander(critters, groupRef, (child, t, c) => {
     const phase = c.phase;
     const hop = Math.max(0, Math.sin(t * 5 + phase)) * 0.22;
@@ -420,6 +431,12 @@ function FoxMesh() {
 export function Foxes() {
   const critters = useMemo(() => makeCritters(10, 7373, 1.9, "fox"), []);
   const groupRef = useRef<THREE.Group>(null);
+  useEffect(() => {
+    return registerCrittersForSpecies(
+      "fox",
+      critters.map((c) => ({ id: c.id, pos: c.pos, species: c.species })),
+    );
+  }, [critters]);
   useWander(critters, groupRef, (child, t, c) => {
     const phase = c.phase;
     child.position.y += Math.abs(Math.sin(t * 6 + phase)) * 0.05;
