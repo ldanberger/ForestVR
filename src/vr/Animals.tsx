@@ -9,6 +9,7 @@ import {
   nextCritterId,
   registerCrittersForSpecies,
   playerCaught,
+  playerCaughtAnimal,
   tagAnimal,
   isFrozen,
   CATCH_RADIUS,
@@ -73,7 +74,13 @@ function useWander(
       let speed = c.speed;
       let steered = false;
 
-      if (isIt) {
+      if (!isIt && tagState.playerIsIt && distP < CATCH_RADIUS) {
+        // The player catches the actual rendered critter, not a stale global
+        // registry entry. This prevents invisible/map-only animals becoming it.
+        playerCaughtAnimal(c.id);
+        speed = 0;
+        steered = true;
+      } else if (isIt) {
         if (isFrozen(c.id)) {
           // Freshly tagged: stand still for a few seconds.
           speed = 0;
@@ -115,7 +122,7 @@ function useWander(
 
       c.pos.x += Math.cos(c.heading) * speed * dt;
       c.pos.z += Math.sin(c.heading) * speed * dt;
-      if (Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5 || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
+      if ((!isIt && Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5) || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
         c.heading += Math.PI;
         c.pos.x += Math.cos(c.heading) * speed * dt * 2;
         c.pos.z += Math.sin(c.heading) * speed * dt * 2;
