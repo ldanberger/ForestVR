@@ -13,6 +13,7 @@ import {
   tagAnimal,
   killAnimal,
   isFrozen,
+  inTagCooldown,
   CATCH_RADIUS,
   FLEE_RADIUS,
   IT_SPEED_MULT,
