@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
@@ -7,7 +7,7 @@ import { playerState } from "./playerState";
 import {
   tagState,
   nextCritterId,
-  registerCritter,
+  registerCrittersForSpecies,
   playerCaught,
   tagAnimal,
   isFrozen,
@@ -50,8 +50,6 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       lastCheckZ: z,
     };
     arr.push(critter);
-    // Register with tag system, sharing the same pos vector so movement is visible globally.
-    registerCritter({ id: critter.id, pos: critter.pos, species });
   }
   return arr;
 }
@@ -301,6 +299,12 @@ function RabbitMesh() {
 export function Rabbits() {
   const critters = useMemo(() => makeCritters(20, 4242, 1.2, "rabbit"), []);
   const groupRef = useRef<THREE.Group>(null);
+  useEffect(() => {
+    return registerCrittersForSpecies(
+      "rabbit",
+      critters.map((c) => ({ id: c.id, pos: c.pos, species: c.species })),
+    );
+  }, [critters]);
   useWander(critters, groupRef, (child, t, c) => {
     const phase = c.phase;
     const hop = Math.max(0, Math.sin(t * 5 + phase)) * 0.22;
@@ -420,6 +424,12 @@ function FoxMesh() {
 export function Foxes() {
   const critters = useMemo(() => makeCritters(10, 7373, 1.9, "fox"), []);
   const groupRef = useRef<THREE.Group>(null);
+  useEffect(() => {
+    return registerCrittersForSpecies(
+      "fox",
+      critters.map((c) => ({ id: c.id, pos: c.pos, species: c.species })),
+    );
+  }, [critters]);
   useWander(critters, groupRef, (child, t, c) => {
     const phase = c.phase;
     child.position.y += Math.abs(Math.sin(t * 6 + phase)) * 0.05;

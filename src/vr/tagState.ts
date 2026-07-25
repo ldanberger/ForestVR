@@ -38,6 +38,31 @@ export function registerCritter(c: TagCritter) {
   tagState.critters.push(c);
 }
 
+export function registerCrittersForSpecies(species: TagCritter["species"], critters: TagCritter[]) {
+  const removedIds = new Set<number>();
+  tagState.critters = tagState.critters.filter((c) => {
+    if (c.species !== species) return true;
+    removedIds.add(c.id);
+    return false;
+  });
+  for (const id of removedIds) {
+    tagState.itIds.delete(id);
+    tagState.itSince.delete(id);
+  }
+  tagState.critters.push(...critters);
+  tagState.version++;
+
+  return () => {
+    const ids = new Set(critters.map((c) => c.id));
+    tagState.critters = tagState.critters.filter((c) => !ids.has(c.id));
+    for (const id of ids) {
+      tagState.itIds.delete(id);
+      tagState.itSince.delete(id);
+    }
+    tagState.version++;
+  };
+}
+
 export function tagAnimal(id: number) {
   if (!tagState.itIds.has(id)) {
     tagState.itIds.add(id);
