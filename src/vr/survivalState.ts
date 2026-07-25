@@ -9,10 +9,12 @@ export type Carrot = {
   foundByPlayer: boolean;
 };
 
+export const STARTING_BACKPACK = 10;
+
 export const survivalState = {
   food: 100,
   water: 100,
-  backpack: 0,
+  backpack: STARTING_BACKPACK,
   gameOver: false,
   carrots: [] as Carrot[],
   // Bump when a carrot is picked so HUD/scene can react if needed.
@@ -41,7 +43,7 @@ export function eatFromBackpack() {
 export function resetSurvival() {
   survivalState.food = 100;
   survivalState.water = 100;
-  survivalState.backpack = 0;
+  survivalState.backpack = STARTING_BACKPACK;
   survivalState.gameOver = false;
   for (const c of survivalState.carrots) {
     c.picked = false;

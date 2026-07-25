@@ -169,6 +169,9 @@ function useWander(
       if (child) {
         child.position.set(c.pos.x, c.pos.y, c.pos.z);
         child.rotation.y = -c.heading + Math.PI / 2;
+        // "It" animals grow to 2x size so they're easy to spot.
+        const targetScale = isIt ? 2 : 1;
+        child.scale.setScalar(targetScale);
         const mark = child.getObjectByName("itMark");
         if (mark) mark.visible = isIt;
         animate(child, t, c, speed);
@@ -267,7 +270,7 @@ function RabbitMesh() {
 }
 
 export function Rabbits() {
-  const critters = useMemo(() => makeCritters(10, 4242, 1.2, "rabbit"), []);
+  const critters = useMemo(() => makeCritters(20, 4242, 1.2, "rabbit"), []);
   const groupRef = useRef<THREE.Group>(null);
   useWander(critters, groupRef, (child, t, c) => {
     const phase = c.phase;
@@ -386,7 +389,7 @@ function FoxMesh() {
 }
 
 export function Foxes() {
-  const critters = useMemo(() => makeCritters(5, 7373, 1.9, "fox"), []);
+  const critters = useMemo(() => makeCritters(10, 7373, 1.9, "fox"), []);
   const groupRef = useRef<THREE.Group>(null);
   useWander(critters, groupRef, (child, t, c) => {
     const phase = c.phase;

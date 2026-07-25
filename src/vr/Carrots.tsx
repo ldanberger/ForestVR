@@ -17,7 +17,7 @@ function rng(seed: number) {
   };
 }
 
-function generateCarrots(count = 60): Carrot[] {
+function generateCarrots(count = 120): Carrot[] {
   const r = rng(7331);
   const out: Carrot[] = [];
   const radius = 90;

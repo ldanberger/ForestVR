@@ -139,22 +139,25 @@ export function Minimap() {
           ctx.stroke();
         }
 
-        // "It" animals shown as red dots with glow
+        // "It" animals shown as red dots with a blinking glow
+        const blink = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
         for (const critter of tagState.critters) {
           if (!tagState.itIds.has(critter.id)) continue;
           const mx = worldToPx(critter.pos.x);
           const my = worldToPx(critter.pos.z);
-          ctx.fillStyle = "rgba(255,40,40,0.35)";
+          ctx.fillStyle = `rgba(255,40,40,${0.15 + 0.4 * blink})`;
           ctx.beginPath();
-          ctx.arc(mx, my, 5, 0, Math.PI * 2);
+          ctx.arc(mx, my, 4 + 4 * blink, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = "#ff2020";
-          ctx.strokeStyle = "#000";
-          ctx.lineWidth = 0.8;
-          ctx.beginPath();
-          ctx.arc(mx, my, 2.4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
+          if (blink > 0.35) {
+            ctx.fillStyle = "#ff2020";
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.arc(mx, my, 2.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
         }
 
         // Player marker (triangle pointing along yaw)
