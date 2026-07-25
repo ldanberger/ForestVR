@@ -85,6 +85,7 @@ export function playerCaught() {
   tagState.playerIsIt = true;
   tagState.itIds.clear();
   tagState.itSince.clear();
+  tagState.lastSwapAt = performance.now();
   tagState.version++;
 }
 
@@ -95,6 +96,7 @@ export function playerCaughtAnimal(id: number) {
   tagState.itSince.clear();
   tagState.itIds.add(id);
   tagState.itSince.set(id, performance.now());
+  tagState.lastSwapAt = performance.now();
   tagState.version++;
 }
 
