@@ -124,6 +124,30 @@ function useWander(
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
+      // Animal-animal separation: prevent critters from stacking on the same
+      // spot (especially "it" animals converging on the player or a fresh tag
+      // target). Push both apart along their delta.
+      const myR = (tagState.itIds.has(c.id) ? 2 : 1) * 0.45;
+      for (const other of tagState.critters) {
+        if (other.id === c.id) continue;
+        const dx = c.pos.x - other.pos.x;
+        const dz = c.pos.z - other.pos.z;
+        const otherR = (tagState.itIds.has(other.id) ? 2 : 1) * 0.45;
+        const minD = myR + otherR;
+        const d2 = dx * dx + dz * dz;
+        if (d2 > 0 && d2 < minD * minD) {
+          const d = Math.sqrt(d2);
+          const push = (minD - d) * 0.5;
+          const nx = dx / d;
+          const nz = dz / d;
+          c.pos.x += nx * push;
+          c.pos.z += nz * push;
+          other.pos.x -= nx * push;
+          other.pos.z -= nz * push;
+        }
+      }
+      c.pos.y = heightAt(c.pos.x, c.pos.z);
+
       // Unstick: if the critter hasn't moved much in 5s, teleport nearby.
       if (c.lastCheckT === 0) {
         c.lastCheckT = t;
