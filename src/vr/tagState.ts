@@ -94,3 +94,16 @@ export function isFrozen(id: number) {
   if (since === undefined) return false;
   return performance.now() - since < IT_FREEZE_SECONDS * 1000;
 }
+
+/** Remove an animal from play. If it was "it", the player becomes "it". */
+export function killAnimal(id: number) {
+  const wasIt = tagState.itIds.has(id);
+  tagState.critters = tagState.critters.filter((c) => c.id !== id);
+  tagState.itIds.delete(id);
+  tagState.itSince.delete(id);
+  if (wasIt) {
+    playerCaught();
+  } else {
+    tagState.version++;
+  }
+}
