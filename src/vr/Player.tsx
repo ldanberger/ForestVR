@@ -12,6 +12,7 @@ import {
 } from "./survivalState";
 import { STREAM_HALF_WIDTH } from "./useHeightAt";
 import { tagState, playerCaughtAnimal, CATCH_RADIUS } from "./tagState";
+import { uiState, toggleInstructions } from "./uiState";
 
 const EYE_HEIGHT = 1.6;
 const MOVE_SPEED = 4;
@@ -38,6 +39,7 @@ export function Player() {
   const yaw = useRef(0);
   const pitch = useRef(0);
   const dragging = useRef(false);
+  const prevBButton = useRef(false);
 
   // Initial desktop camera setup
   useEffect(() => {
@@ -91,6 +93,17 @@ export function Player() {
       mz += -(lstick.yAxis ?? 0);
     }
 
+    // Mobile touch joystick.
+    mx += uiState.mobileMove.x;
+    mz += -uiState.mobileMove.y;
+
+    // B button on right controller toggles instructions (menu button is
+    // reserved by the Meta system UI and can't be captured by the app).
+    const bBtn: any = (right?.gamepad as any)?.["b-button"];
+    const bPressed = !!(bBtn && (bBtn.button > 0.5 || bBtn.state === "pressed"));
+    if (bPressed && !prevBButton.current) toggleInstructions();
+    prevBButton.current = bPressed;
+
     if (inXR) {
       const rig = originRef.current;
       if (!rig) return;
@@ -121,10 +134,19 @@ export function Player() {
 
       rig.position.y = heightAt(rig.position.x, rig.position.z);
     } else {
-      // Desktop: move the actual camera
+      // Desktop / mobile: move the actual camera
       // Q/E turn
       if (keys["KeyQ"]) yaw.current += dt * 1.8;
       if (keys["KeyE"]) yaw.current -= dt * 1.8;
+
+      // Mobile touch look (drag on right side).
+      if (uiState.mobileLook.x !== 0 || uiState.mobileLook.y !== 0) {
+        yaw.current -= uiState.mobileLook.x * 0.005;
+        pitch.current -= uiState.mobileLook.y * 0.005;
+        pitch.current = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, pitch.current));
+        uiState.mobileLook.x = 0;
+        uiState.mobileLook.y = 0;
+      }
       camera.rotation.set(pitch.current, yaw.current, 0);
 
       // Forward on the XZ plane derived from yaw
