@@ -149,7 +149,12 @@ function useWander(
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
       // Unstick: if the critter hasn't moved much in 5s, teleport nearby.
-      if (c.lastCheckT === 0) {
+      // Skip while an "it" animal is frozen — it's supposed to stand still.
+      if (isIt && isFrozen(c.id)) {
+        c.lastCheckT = t;
+        c.lastCheckX = c.pos.x;
+        c.lastCheckZ = c.pos.z;
+      } else if (c.lastCheckT === 0) {
         c.lastCheckT = t;
         c.lastCheckX = c.pos.x;
         c.lastCheckZ = c.pos.z;
