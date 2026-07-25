@@ -1,6 +1,7 @@
+import { useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Sky, Environment, Cloud, Clouds } from "@react-three/drei";
-import { XR, createXRStore } from "@react-three/xr";
+import { XR, createXRStore, useXR } from "@react-three/xr";
 import * as THREE from "three";
 import { Terrain } from "./Terrain";
 import { Stream } from "./Stream";
@@ -12,57 +13,146 @@ import { Carrots } from "./Carrots";
 import { Minimap } from "./Minimap";
 import { SurvivalHUD } from "./SurvivalHUD";
 import { TagHUD } from "./TagHUD";
+import { VRHud } from "./VRHud";
+import { TouchControls } from "./TouchControls";
+import {
+  isTouchDevice,
+  startGame,
+  toggleInstructions,
+  useUi,
+} from "./uiState";
 
 const store = createXRStore();
 
+/** Mounted inside <XR>; flips uiState.started as soon as a session begins. */
+function XRSessionSync() {
+  const session = useXR((s) => s.session);
+  useEffect(() => {
+    if (session) startGame();
+  }, [session]);
+  return null;
+}
+
 export default function ForestVR() {
+  const ui = useUi();
+
+  // Right-click anywhere toggles the instructions panel.
+  useEffect(() => {
+    const onCtx = (e: MouseEvent) => {
+      e.preventDefault();
+      toggleInstructions();
+    };
+    window.addEventListener("contextmenu", onCtx);
+    return () => window.removeEventListener("contextmenu", onCtx);
+  }, []);
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "#88b4d8" }}>
       <Minimap />
       <SurvivalHUD />
       <TagHUD />
-      <div
-        style={{
-          position: "absolute",
-          top: 16,
-          left: 16,
-          zIndex: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        <button
-          onClick={() => store.enterVR()}
-          style={{
-            padding: "12px 20px",
-            fontSize: 16,
-            fontWeight: 600,
-            background: "#1a1a1a",
-            color: "#fff",
-            border: "1px solid #444",
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
-          Enter VR (Meta Quest 3)
-        </button>
+      {isTouchDevice && ui.started && <TouchControls />}
+
+      {!ui.started && (
         <div
           style={{
-            background: "rgba(0,0,0,0.55)",
+            position: "absolute",
+            top: 16,
+            left: 16,
+            zIndex: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <button
+            onClick={() => {
+              store.enterVR();
+              startGame();
+            }}
+            style={{
+              padding: "12px 20px",
+              fontSize: 16,
+              fontWeight: 600,
+              background: "#1a1a1a",
+              color: "#fff",
+              border: "1px solid #444",
+              borderRadius: 8,
+              cursor: "pointer",
+            }}
+          >
+            Enter VR (Meta Quest 3)
+          </button>
+          <button
+            onClick={() => startGame()}
+            style={{
+              padding: "10px 18px",
+              fontSize: 15,
+              fontWeight: 600,
+              background: "#3aa0e0",
+              color: "#fff",
+              border: "1px solid #226",
+              borderRadius: 8,
+              cursor: "pointer",
+            }}
+          >
+            Start on {isTouchDevice ? "iPhone / Touch" : "Desktop"}
+          </button>
+        </div>
+      )}
+
+      {ui.started && ui.showInstructions && (
+        <div
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            zIndex: 10,
+            background: "rgba(0,0,0,0.6)",
             color: "#fff",
             padding: "10px 12px",
             borderRadius: 8,
             fontSize: 13,
-            maxWidth: 280,
-            lineHeight: 1.4,
+            maxWidth: 300,
+            lineHeight: 1.45,
+            fontFamily: "sans-serif",
           }}
         >
-          <strong>VR:</strong> left stick = walk, right stick = snap turn, trigger near an item = grab, release = drop.
+          <strong>VR:</strong> left stick walk, right stick snap turn, trigger
+          near an item to grab, B button toggles this help.
           <br />
-          <strong>Desktop:</strong> WASD or arrows to move, Q/E to turn.
+          <strong>Desktop:</strong> WASD / arrows to move, Q/E to turn,
+          right-click toggles this help.
+          <br />
+          <strong>iPhone:</strong> left joystick to move, drag right side to
+          look.
         </div>
-      </div>
+      )}
+
+      {ui.started && !ui.showInstructions && (
+        <button
+          onClick={() => toggleInstructions()}
+          title="Show help (right-click / B button also works)"
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            zIndex: 10,
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "rgba(0,0,0,0.55)",
+            color: "#fff",
+            border: "1px solid #555",
+            cursor: "pointer",
+            fontSize: 18,
+            fontWeight: 700,
+          }}
+        >
+          ?
+        </button>
+      )}
+
       <Canvas
         shadows
         dpr={[1, 2]}
@@ -75,6 +165,7 @@ export default function ForestVR() {
         }}
       >
         <XR store={store}>
+          <XRSessionSync />
           <color attach="background" args={["#9ec3e0"]} />
           <fog attach="fog" args={["#b8d0e2", 55, 220]} />
 
@@ -113,6 +204,7 @@ export default function ForestVR() {
           <Items />
           <Carrots />
           <Player />
+          <VRHud />
         </XR>
       </Canvas>
     </div>
