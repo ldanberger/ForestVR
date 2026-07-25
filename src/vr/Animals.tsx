@@ -209,8 +209,8 @@ function useWander(
           }
         }
       }
-      const child = groupRef.current!.children[i] as THREE.Object3D | undefined;
       if (child) {
+        child.visible = true;
         child.position.set(c.pos.x, c.pos.y, c.pos.z);
         child.rotation.y = -c.heading + Math.PI / 2;
         // "It" animals grow to 2x size so they're easy to spot.
