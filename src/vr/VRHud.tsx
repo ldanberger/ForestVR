@@ -62,9 +62,6 @@ export function VRHud() {
         <planeGeometry args={[0.44, 0.28]} />
         <meshBasicMaterial color="#000" transparent opacity={0.55} depthTest={false} />
       </mesh>
-      <Text {...textProps} position={[0, 0.09, 0]} color="#ffb070">
-        Food
-      </Text>
       <Text ref={foodRef} {...textProps} position={[0, 0.09, 0]} color="#ffb070">
         Food
       </Text>
