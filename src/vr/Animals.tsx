@@ -11,6 +11,7 @@ import {
   playerCaught,
   playerCaughtAnimal,
   tagAnimal,
+  killAnimal,
   isFrozen,
   CATCH_RADIUS,
   FLEE_RADIUS,
