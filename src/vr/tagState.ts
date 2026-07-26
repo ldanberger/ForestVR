@@ -18,7 +18,7 @@ export const FLEE_RADIUS = 18;
 export const IT_SPEED_MULT = 3.2;
 export const FLEE_SPEED_MULT = 1.6;
 
-export const IT_FREEZE_SECONDS = 10;
+export const IT_FREEZE_SECONDS = 3;
 
 export const tagState = {
   playerIsIt: true,
