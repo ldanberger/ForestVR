@@ -22,7 +22,45 @@ import {
   useUi,
 } from "./uiState";
 
-const store = createXRStore();
+const store = createXRStore({
+  foveation: 0,
+  // Ask the runtime for local-floor so the world sits at ground level in the headset.
+  sessionInit: {
+    optionalFeatures: ["local-floor", "bounded-floor", "hand-tracking", "layers"],
+  },
+});
+
+async function enterVRSafely() {
+  try {
+    // Some browsers (Quest) only expose navigator.xr on secure origins.
+    if (typeof navigator === "undefined" || !("xr" in navigator)) {
+      alert(
+        "WebXR is not available in this browser.\n\n" +
+          "On Meta Quest 3: open the Meta Quest Browser and load this page's URL directly (not through Lovable's preview iframe), then tap 'Enter VR'.",
+      );
+      return;
+    }
+    const supported = await (navigator as any).xr?.isSessionSupported?.(
+      "immersive-vr",
+    );
+    if (!supported) {
+      alert(
+        "Immersive VR is not supported here.\n\n" +
+          "Open this exact URL inside the Meta Quest Browser on the headset (not the desktop preview, and not inside an iframe).",
+      );
+      return;
+    }
+    await store.enterVR();
+    startGame();
+  } catch (err) {
+    console.error("enterVR failed", err);
+    alert(
+      "Could not start VR: " +
+        (err instanceof Error ? err.message : String(err)) +
+        "\n\nTip: open this page's URL directly in the Meta Quest Browser (top-right 'Open in new tab' from the preview), then press Enter VR.",
+    );
+  }
+}
 
 /** Mounted inside <XR>; flips uiState.started as soon as a session begins. */
 function XRSessionSync() {
