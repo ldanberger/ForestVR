@@ -138,7 +138,14 @@ function useWander(
 
       c.pos.x += Math.cos(c.heading) * speed * dt;
       c.pos.z += Math.sin(c.heading) * speed * dt;
-      if ((!isIt && Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5) || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
+      if (isIt) {
+        // "It" animals chase the player wherever they roam — don't flip their
+        // heading at the world edge, just clamp position so they can't leave.
+        if (c.pos.x > 58) c.pos.x = 58;
+        else if (c.pos.x < -58) c.pos.x = -58;
+        if (c.pos.z > 58) c.pos.z = 58;
+        else if (c.pos.z < -58) c.pos.z = -58;
+      } else if (Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5 || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
         c.heading += Math.PI;
         c.pos.x += Math.cos(c.heading) * speed * dt * 2;
         c.pos.z += Math.sin(c.heading) * speed * dt * 2;
