@@ -104,9 +104,9 @@ export default function ForestVR() {
         >
           <button
             onClick={() => {
-              store.enterVR();
-              startGame();
+              void enterVRSafely();
             }}
+
             style={{
               padding: "12px 20px",
               fontSize: 16,
