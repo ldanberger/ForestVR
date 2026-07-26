@@ -34,6 +34,51 @@ type Critter = {
   dead: boolean;
 };
 
+const WORLD_LIMIT = 55;
+const IT_WORLD_LIMIT = 58;
+
+function angleDelta(target: number, current: number) {
+  return Math.atan2(Math.sin(target - current), Math.cos(target - current));
+}
+
+function turnToward(current: number, target: number, maxStep: number) {
+  const delta = angleDelta(target, current);
+  if (Math.abs(delta) <= maxStep) return target;
+  return current + Math.sign(delta) * maxStep;
+}
+
+function steerOutOfRestrictedArea(c: Critter, speed: number, dt: number) {
+  const streamLimit = STREAM_HALF_WIDTH + 0.6;
+  let steerX = 0;
+  let steerZ = 0;
+
+  if (Math.abs(c.pos.x) < streamLimit) {
+    const side = c.pos.x >= 0 ? 1 : -1;
+    c.pos.x = side * streamLimit;
+    steerX += side;
+  }
+  if (c.pos.x > WORLD_LIMIT) {
+    c.pos.x = WORLD_LIMIT;
+    steerX -= 1;
+  } else if (c.pos.x < -WORLD_LIMIT) {
+    c.pos.x = -WORLD_LIMIT;
+    steerX += 1;
+  }
+  if (c.pos.z > WORLD_LIMIT) {
+    c.pos.z = WORLD_LIMIT;
+    steerZ -= 1;
+  } else if (c.pos.z < -WORLD_LIMIT) {
+    c.pos.z = -WORLD_LIMIT;
+    steerZ += 1;
+  }
+
+  if (steerX !== 0 || steerZ !== 0) {
+    c.heading = turnToward(c.heading, Math.atan2(steerZ, steerX), dt * 8);
+    c.pos.x += Math.cos(c.heading) * speed * dt;
+    c.pos.z += Math.sin(c.heading) * speed * dt;
+  }
+}
+
 function makeCritters(count: number, seed: number, speed: number, species: "rabbit" | "fox"): Critter[] {
   const arr: Critter[] = [];
   let s = seed;
@@ -100,7 +145,7 @@ function useWander(
           steered = true;
         } else {
           // Chase the player.
-          c.heading = Math.atan2(dzp, dxp);
+          c.heading = turnToward(c.heading, Math.atan2(dzp, dxp), dt * 7);
           speed = c.speed * IT_SPEED_MULT;
           steered = true;
           if (!cooling && distP < itCatchR) {
@@ -122,12 +167,12 @@ function useWander(
         }
       } else if (tagState.playerIsIt && distP < FLEE_RADIUS) {
         // Flee from the player.
-        c.heading = Math.atan2(-dzp, -dxp);
+        c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 6);
         speed = c.speed * FLEE_SPEED_MULT;
         steered = true;
       } else if (!tagState.playerIsIt && distP < FLEE_RADIUS * 0.6) {
         // A non-it animal also gives the player space while chased.
-        c.heading = Math.atan2(-dzp, -dxp);
+        c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 5);
         speed = c.speed * 1.1;
         steered = true;
       }
@@ -141,14 +186,12 @@ function useWander(
       if (isIt) {
         // "It" animals chase the player wherever they roam — don't flip their
         // heading at the world edge, just clamp position so they can't leave.
-        if (c.pos.x > 58) c.pos.x = 58;
-        else if (c.pos.x < -58) c.pos.x = -58;
-        if (c.pos.z > 58) c.pos.z = 58;
-        else if (c.pos.z < -58) c.pos.z = -58;
-      } else if (Math.abs(c.pos.x) < STREAM_HALF_WIDTH + 0.5 || Math.abs(c.pos.x) > 55 || Math.abs(c.pos.z) > 55) {
-        c.heading += Math.PI;
-        c.pos.x += Math.cos(c.heading) * speed * dt * 2;
-        c.pos.z += Math.sin(c.heading) * speed * dt * 2;
+        if (c.pos.x > IT_WORLD_LIMIT) c.pos.x = IT_WORLD_LIMIT;
+        else if (c.pos.x < -IT_WORLD_LIMIT) c.pos.x = -IT_WORLD_LIMIT;
+        if (c.pos.z > IT_WORLD_LIMIT) c.pos.z = IT_WORLD_LIMIT;
+        else if (c.pos.z < -IT_WORLD_LIMIT) c.pos.z = -IT_WORLD_LIMIT;
+      } else {
+        steerOutOfRestrictedArea(c, speed, dt);
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
