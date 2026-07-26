@@ -112,6 +112,7 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       itBestDist: Infinity,
       itNoCloseT: 0,
       infectT: 0,
+      bankSide: x >= 0 ? 1 : -1,
     };
     arr.push(critter);
   }
