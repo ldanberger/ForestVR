@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Sky, Environment, Cloud, Clouds } from "@react-three/drei";
 import { XR, createXRStore, useXR } from "@react-three/xr";
@@ -27,6 +27,9 @@ const store = createXRStore({
   offerSession: "immersive-vr",
   hand: { teleportPointer: true },
 });
+
+const DESKTOP_DPR: [number, number] = [1, 2];
+const VR_SAFE_DPR: [number, number] = [1, 1];
 
 
 async function enterVRSafely() {
@@ -62,16 +65,82 @@ async function enterVRSafely() {
 }
 
 /** Mounted inside <XR>; flips uiState.started as soon as a session begins. */
-function XRSessionSync() {
+function XRSessionSync({
+  onSessionChange,
+}: {
+  onSessionChange: (active: boolean) => void;
+}) {
   const session = useXR((s) => s.session);
+  const wasActive = useRef(false);
   useEffect(() => {
-    if (session) startGame();
-  }, [session]);
+    const active = Boolean(session);
+    onSessionChange(active);
+
+    if (active) {
+      startGame();
+      if (!wasActive.current) {
+        console.info("Immersive VR session started; using Quest-safe scene settings.");
+      }
+    } else if (wasActive.current) {
+      console.info("Immersive VR session ended; restoring desktop scene settings.");
+    }
+
+    wasActive.current = active;
+  }, [session, onSessionChange]);
   return null;
+}
+
+function WebGLContextGuard({ onLost }: { onLost: () => void }) {
+  const gl = useThree((s) => s.gl);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleLost = (event: Event) => {
+      event.preventDefault();
+      console.error("WebGL context lost while rendering the VR forest.");
+      onLost();
+    };
+    const handleRestored = () => {
+      console.info("WebGL context restored for the VR forest.");
+    };
+
+    canvas.addEventListener("webglcontextlost", handleLost);
+    canvas.addEventListener("webglcontextrestored", handleRestored);
+    return () => {
+      canvas.removeEventListener("webglcontextlost", handleLost);
+      canvas.removeEventListener("webglcontextrestored", handleRestored);
+    };
+  }, [gl, onLost]);
+
+  return null;
+}
+
+function Atmosphere({ vrSafe }: { vrSafe: boolean }) {
+  if (vrSafe) {
+    return <Sky sunPosition={[40, 55, 25]} turbidity={2.4} rayleigh={1.1} mieCoefficient={0.004} mieDirectionalG={0.82} />;
+  }
+
+  return (
+    <>
+      <Sky sunPosition={[40, 55, 25]} turbidity={3} rayleigh={1.2} mieCoefficient={0.005} mieDirectionalG={0.85} />
+      {/* HDRI is a network fetch — isolate it so a slow/failed load can't
+          suspend the whole scene (which blacks out the headset). */}
+      <Suspense fallback={null}>
+        <Environment preset="park" background={false} environmentIntensity={0.6} />
+      </Suspense>
+      <Clouds material={THREE.MeshBasicMaterial} limit={40}>
+        <Cloud seed={1} segments={30} bounds={[8, 2, 4]} volume={7} position={[20, 45, -30]} color="#ffffff" opacity={0.65} />
+        <Cloud seed={2} segments={24} bounds={[10, 2, 4]} volume={9} position={[-40, 50, 10]} color="#ffffff" opacity={0.6} />
+        <Cloud seed={3} segments={20} bounds={[8, 2, 4]} volume={6} position={[10, 48, 40]} color="#ffffff" opacity={0.55} />
+      </Clouds>
+    </>
+  );
 }
 
 export default function ForestVR() {
   const ui = useUi();
+  const [vrSessionActive, setVrSessionActive] = useState(false);
+  const [webglContextLost, setWebglContextLost] = useState(false);
 
   // Right-click anywhere toggles the instructions panel.
   useEffect(() => {
@@ -190,19 +259,51 @@ export default function ForestVR() {
         </button>
       )}
 
+      {webglContextLost && (
+        <div
+          role="alert"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 30,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.72)",
+            color: "#fff",
+            padding: 24,
+            fontSize: 16,
+            lineHeight: 1.45,
+            fontFamily: "sans-serif",
+            textAlign: "center",
+          }}
+        >
+          The headset lost the forest graphics context. Reload this page, then enter VR again.
+        </div>
+      )}
+
       <Canvas
-        shadows
-        dpr={[1, 2]}
+        shadows={!vrSessionActive}
+        dpr={vrSessionActive ? VR_SAFE_DPR : DESKTOP_DPR}
         camera={{ fov: 70, near: 0.1, far: 600, position: [6, 3, 6] }}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
+        gl={{
+          antialias: !vrSessionActive,
+          alpha: false,
+          depth: true,
+          stencil: false,
+          preserveDrawingBuffer: false,
+          powerPreference: vrSessionActive ? "default" : "high-performance",
+        }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = 1.05;
+          gl.toneMappingExposure = vrSessionActive ? 0.95 : 1.05;
           gl.shadowMap.type = THREE.PCFShadowMap;
+          gl.setClearColor("#9ec3e0", 1);
         }}
       >
+        <WebGLContextGuard onLost={() => setWebglContextLost(true)} />
         <XR store={store}>
-          <XRSessionSync />
+          <XRSessionSync onSessionChange={setVrSessionActive} />
           <color attach="background" args={["#9ec3e0"]} />
           <fog attach="fog" args={["#b8d0e2", 55, 220]} />
 
@@ -210,9 +311,9 @@ export default function ForestVR() {
           <hemisphereLight args={["#dceeff", "#3a4a2a", 0.45]} />
           <directionalLight
             position={[40, 55, 25]}
-            intensity={2.2}
+            intensity={vrSessionActive ? 1.7 : 2.2}
             color="#fff2d6"
-            castShadow
+            castShadow={!vrSessionActive}
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
             shadow-camera-left={-60}
@@ -224,17 +325,7 @@ export default function ForestVR() {
             shadow-bias={-0.0004}
             shadow-normalBias={0.04}
           />
-          <Sky sunPosition={[40, 55, 25]} turbidity={3} rayleigh={1.2} mieCoefficient={0.005} mieDirectionalG={0.85} />
-          {/* HDRI is a network fetch — isolate it so a slow/failed load can't
-              suspend the whole scene (which blacks out the headset). */}
-          <Suspense fallback={null}>
-            <Environment preset="park" background={false} environmentIntensity={0.6} />
-          </Suspense>
-          <Clouds material={THREE.MeshBasicMaterial} limit={40}>
-            <Cloud seed={1} segments={30} bounds={[8, 2, 4]} volume={7} position={[20, 45, -30]} color="#ffffff" opacity={0.65} />
-            <Cloud seed={2} segments={24} bounds={[10, 2, 4]} volume={9} position={[-40, 50, 10]} color="#ffffff" opacity={0.6} />
-            <Cloud seed={3} segments={20} bounds={[8, 2, 4]} volume={6} position={[10, 48, 40]} color="#ffffff" opacity={0.55} />
-          </Clouds>
+          <Atmosphere vrSafe={vrSessionActive} />
           <Terrain />
           <Stream />
           <Trees />
