@@ -187,22 +187,29 @@ function useWander(
         speed = c.speed * FLEE_SPEED_MULT;
         steered = true;
       } else if (!tagState.playerIsIt) {
-        // Player is not "it": any non-it animal that brushes an "it" animal
-        // becomes "it" too. Also gives the player some space during chases.
+        // Player is not "it": non-it animals chase "it" animals and become
+        // "it" after 3 continuous seconds within INFECT_RADIUS.
         const r2 = INFECT_RADIUS * INFECT_RADIUS;
+        let nearIt = false;
         let fleeIt: { dx: number; dz: number } | null = null;
         for (const other of tagState.critters) {
           if (!tagState.itIds.has(other.id)) continue;
           const ox = c.pos.x - other.pos.x;
           const oz = c.pos.z - other.pos.z;
           const od2 = ox * ox + oz * oz;
-          if (od2 < r2) {
-            tagAnimal(c.id);
-            break;
-          }
+          if (od2 < r2) nearIt = true;
           if (!fleeIt && od2 < FLEE_RADIUS * FLEE_RADIUS) {
             fleeIt = { dx: ox, dz: oz };
           }
+        }
+        if (nearIt) {
+          c.infectT += dt;
+          if (c.infectT >= 3) {
+            tagAnimal(c.id);
+            c.infectT = 0;
+          }
+        } else {
+          c.infectT = 0;
         }
         if (!tagState.itIds.has(c.id) && fleeIt) {
           // Non-it animals chase "it" animals to try to tag them.
