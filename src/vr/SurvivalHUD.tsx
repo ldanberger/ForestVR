@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { survivalState, eatFromBackpack, resetSurvival } from "./survivalState";
+import { survivalState, eatFromBackpack, resetSurvival, MAX_STAT } from "./survivalState";
 
 export function SurvivalHUD() {
   const [, tick] = useState(0);
