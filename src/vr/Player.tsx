@@ -128,8 +128,8 @@ export function Player() {
       if (mx !== 0 || mz !== 0) {
         const mv = new THREE.Vector3().addScaledVector(fwd, mz).addScaledVector(strafe, mx);
         if (mv.lengthSq() > 1) mv.normalize();
-        rig.position.x += mv.x * MOVE_SPEED * dt;
-        rig.position.z += mv.z * MOVE_SPEED * dt;
+        rig.position.x += mv.x * currentMoveSpeed() * dt;
+        rig.position.z += mv.z * currentMoveSpeed() * dt;
       }
 
       // Snap turn
@@ -165,8 +165,8 @@ export function Player() {
       if (mx !== 0 || mz !== 0) {
         const mv = new THREE.Vector3().addScaledVector(fwd, mz).addScaledVector(strafe, mx);
         if (mv.lengthSq() > 1) mv.normalize();
-        camera.position.x += mv.x * MOVE_SPEED * dt;
-        camera.position.z += mv.z * MOVE_SPEED * dt;
+        camera.position.x += mv.x * currentMoveSpeed() * dt;
+        camera.position.z += mv.z * currentMoveSpeed() * dt;
       }
       camera.position.y = heightAt(camera.position.x, camera.position.z) + EYE_HEIGHT;
     }
