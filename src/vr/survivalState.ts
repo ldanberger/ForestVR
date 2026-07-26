@@ -10,10 +10,11 @@ export type Carrot = {
 };
 
 export const STARTING_BACKPACK = 10;
+export const MAX_STAT = 200;
 
 export const survivalState = {
-  food: 100,
-  water: 100,
+  food: MAX_STAT,
+  water: MAX_STAT,
   backpack: STARTING_BACKPACK,
   gameOver: false,
   carrots: [] as Carrot[],
@@ -36,13 +37,13 @@ export function eatFromBackpack() {
   if (survivalState.gameOver) return;
   if (survivalState.backpack <= 0) return;
   survivalState.backpack -= 1;
-  survivalState.food = Math.min(100, survivalState.food + CARROT_FOOD_GAIN);
+  survivalState.food = Math.min(MAX_STAT, survivalState.food + CARROT_FOOD_GAIN);
   survivalState.version++;
 }
 
 export function resetSurvival() {
-  survivalState.food = 100;
-  survivalState.water = 100;
+  survivalState.food = MAX_STAT;
+  survivalState.water = MAX_STAT;
   survivalState.backpack = STARTING_BACKPACK;
   survivalState.gameOver = false;
   for (const c of survivalState.carrots) {
