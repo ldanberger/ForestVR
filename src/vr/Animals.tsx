@@ -180,18 +180,7 @@ function useWander(
             c.heading = Math.atan2(-dzp, -dxp);
           }
         }
-        // "It" animals — frozen or chasing — infect any non-it critter they
-        // touch. Checking from the "it" side covers frozen taggers too.
-        if (tagState.playerIsIt === false) {
-          const r2 = INFECT_RADIUS * INFECT_RADIUS;
-          for (const other of tagState.critters) {
-            if (other.id === c.id) continue;
-            if (tagState.itIds.has(other.id)) continue;
-            const ox = other.pos.x - c.pos.x;
-            const oz = other.pos.z - c.pos.z;
-            if (ox * ox + oz * oz < r2) tagAnimal(other.id);
-          }
-        }
+        // Infection is handled from the non-it side below (with a 3s delay).
       } else if (tagState.playerIsIt && distP < FLEE_RADIUS) {
         // Flee from the player.
         c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 6);
