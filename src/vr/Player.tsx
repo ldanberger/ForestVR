@@ -9,6 +9,7 @@ import {
   FOOD_DRAIN_PER_M,
   WATER_DRAIN_PER_M,
   WATER_GAIN_PER_S,
+  MAX_STAT,
 } from "./survivalState";
 import { STREAM_HALF_WIDTH } from "./useHeightAt";
 import { uiState, toggleInstructions } from "./uiState";
