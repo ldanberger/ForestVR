@@ -175,31 +175,6 @@ function useWander(
             // moves out of catch range instead of oscillating.
             c.heading = Math.atan2(-dzp, -dxp);
           }
-          // Chase-progress unstick: if we haven't gotten meaningfully closer
-          // to the player within 2s, teleport to ~6m from them so the chase
-          // stays lively.
-          if (c.itChaseT === 0) {
-            c.itChaseT = t;
-            c.itBestDist = distP;
-          } else if (distP < c.itBestDist - 0.5) {
-            c.itChaseT = t;
-            c.itBestDist = distP;
-          } else if (t - c.itChaseT > 2) {
-            const ang = Math.atan2(c.pos.z - pz, c.pos.x - px) + (Math.random() - 0.5) * 0.6;
-            const rad = 5.5 + Math.random() * 1.5;
-            let nx = px + Math.cos(ang) * rad;
-            let nz = pz + Math.sin(ang) * rad;
-            if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) nx = (nx >= 0 ? 1 : -1) * (STREAM_HALF_WIDTH + 1);
-            nx = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nx));
-            nz = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nz));
-            c.pos.x = nx;
-            c.pos.z = nz;
-            c.pos.y = heightAt(nx, nz);
-            c.heading = Math.atan2(pz - nz, px - nx);
-            c.itChaseT = t;
-            c.itBestDist = Math.hypot(px - nx, pz - nz);
-            c.itNoCloseT = 0;
-          }
         }
         // "It" animals — frozen or chasing — infect any non-it critter they
         // touch. Checking from the "it" side covers frozen taggers too.
