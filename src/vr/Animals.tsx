@@ -175,31 +175,6 @@ function useWander(
             // moves out of catch range instead of oscillating.
             c.heading = Math.atan2(-dzp, -dxp);
           }
-          // Chase-progress unstick: if we haven't gotten meaningfully closer
-          // to the player within 2s, teleport to ~6m from them so the chase
-          // stays lively.
-          if (c.itChaseT === 0) {
-            c.itChaseT = t;
-            c.itBestDist = distP;
-          } else if (distP < c.itBestDist - 0.5) {
-            c.itChaseT = t;
-            c.itBestDist = distP;
-          } else if (t - c.itChaseT > 2) {
-            const ang = Math.atan2(c.pos.z - pz, c.pos.x - px) + (Math.random() - 0.5) * 0.6;
-            const rad = 5.5 + Math.random() * 1.5;
-            let nx = px + Math.cos(ang) * rad;
-            let nz = pz + Math.sin(ang) * rad;
-            if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) nx = (nx >= 0 ? 1 : -1) * (STREAM_HALF_WIDTH + 1);
-            nx = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nx));
-            nz = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nz));
-            c.pos.x = nx;
-            c.pos.z = nz;
-            c.pos.y = heightAt(nx, nz);
-            c.heading = Math.atan2(pz - nz, px - nx);
-            c.itChaseT = t;
-            c.itBestDist = Math.hypot(px - nx, pz - nz);
-            c.itNoCloseT = 0;
-          }
         }
         // "It" animals — frozen or chasing — infect any non-it critter they
         // touch. Checking from the "it" side covers frozen taggers too.
@@ -361,8 +336,8 @@ function useWander(
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
-      // Unstick: if the critter hasn't moved much in 5s, teleport nearby.
-      // Skip while an "it" animal is frozen — it's supposed to stand still.
+      // Unstick: if the critter hasn't moved much in 5s, nudge its heading so
+      // it walks off in a new direction (no teleporting).
       if (isIt && isFrozen(c.id)) {
         c.lastCheckT = t;
         c.lastCheckX = c.pos.x;
@@ -375,19 +350,7 @@ function useWander(
         const dxm = c.pos.x - c.lastCheckX;
         const dzm = c.pos.z - c.lastCheckZ;
         if (dxm * dxm + dzm * dzm < 0.25) {
-          for (let tryI = 0; tryI < 8; tryI++) {
-            const ang = Math.random() * Math.PI * 2;
-            const rad = 3 + Math.random() * 4;
-            const nx = c.pos.x + Math.cos(ang) * rad;
-            const nz = c.pos.z + Math.sin(ang) * rad;
-            if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) continue;
-            if (Math.abs(nx) > 55 || Math.abs(nz) > 55) continue;
-            c.pos.x = nx;
-            c.pos.z = nz;
-            c.pos.y = heightAt(nx, nz);
-            c.heading = Math.random() * Math.PI * 2;
-            break;
-          }
+          c.heading = Math.random() * Math.PI * 2;
         }
         c.lastCheckT = t;
         c.lastCheckX = c.pos.x;
