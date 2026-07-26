@@ -16,6 +16,7 @@ import {
   isFrozen,
   inTagCooldown,
   CATCH_RADIUS,
+  INFECT_RADIUS,
   FLEE_RADIUS,
   IT_SPEED_MULT,
   IT_MIN_SPEED,
