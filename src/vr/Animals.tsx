@@ -33,6 +33,8 @@ type Critter = {
   lastCheckZ: number;
   overlapT: number;
   dead: boolean;
+  itChaseT: number;
+  itBestDist: number;
 };
 
 const WORLD_LIMIT = 55;
