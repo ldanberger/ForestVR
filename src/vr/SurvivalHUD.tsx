@@ -13,8 +13,8 @@ export function SurvivalHUD() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const food = Math.max(0, Math.min(100, survivalState.food));
-  const water = Math.max(0, Math.min(100, survivalState.water));
+  const food = Math.max(0, Math.min(MAX_STAT, survivalState.food));
+  const water = Math.max(0, Math.min(MAX_STAT, survivalState.water));
   const backpack = survivalState.backpack;
   const gameOver = survivalState.gameOver;
 
