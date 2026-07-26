@@ -41,7 +41,27 @@ type Critter = {
   infectT: number;
   bankSide: 1 | -1;
   celebrateUntil: number;
+  caughtPlayer: boolean;
 };
+
+const CAUGHT_BLUE = new THREE.Color("#1e73ff");
+
+function tintCaught(child: THREE.Object3D) {
+  child.traverse((obj) => {
+    if (obj.name === "itMark") return;
+    const mesh = obj as THREE.Mesh;
+    const mat = mesh.material as THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[] | undefined;
+    if (!mat) return;
+    const apply = (m: THREE.MeshStandardMaterial) => {
+      if ((m as unknown as { __caughtBlue?: boolean }).__caughtBlue) return;
+      if (m.color) m.color.copy(CAUGHT_BLUE);
+      if (m.emissive) m.emissive.setRGB(0.05, 0.15, 0.4);
+      (m as unknown as { __caughtBlue?: boolean }).__caughtBlue = true;
+    };
+    if (Array.isArray(mat)) mat.forEach(apply);
+    else apply(mat);
+  });
+}
 
 const WORLD_LIMIT = 55;
 const IT_WORLD_LIMIT = 58;
