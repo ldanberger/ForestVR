@@ -39,6 +39,7 @@ type Critter = {
   itBestDist: number;
   itNoCloseT: number;
   infectT: number;
+  bankSide: 1 | -1;
 };
 
 const WORLD_LIMIT = 55;
@@ -111,6 +112,7 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       itBestDist: Infinity,
       itNoCloseT: 0,
       infectT: 0,
+      bankSide: x >= 0 ? 1 : -1,
     };
     arr.push(critter);
   }
@@ -246,6 +248,15 @@ function useWander(
         if (isIt) c.heading = Math.atan2(pz - c.pos.z, px - c.pos.x);
         else c.heading += (Math.random() - 0.5) * 1.2;
       }
+      // Water is impassable: keep every animal on its birth bank.
+      const bank = STREAM_HALF_WIDTH + agentR;
+      if (c.bankSide * c.pos.x < bank) {
+        c.pos.x = c.bankSide * bank;
+        // If heading points across the stream, turn to run along it instead.
+        if (c.bankSide * Math.cos(c.heading) < 0) {
+          c.heading = Math.sin(c.heading) >= 0 ? Math.PI / 2 : -Math.PI / 2;
+        }
+      }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
       // Hard guarantee for "it" animals: if this frame did not reduce the
@@ -271,6 +282,7 @@ function useWander(
           if (c.pos.z > IT_WORLD_LIMIT) c.pos.z = IT_WORLD_LIMIT;
           else if (c.pos.z < -IT_WORLD_LIMIT) c.pos.z = -IT_WORLD_LIMIT;
           resolveObstacleCollision(c.pos, agentR);
+          if (c.bankSide * c.pos.x < bank) c.pos.x = c.bankSide * bank;
           c.pos.y = heightAt(c.pos.x, c.pos.z);
         }
         const distAfterLunge = Math.hypot(px - c.pos.x, pz - c.pos.z) || 0.0001;
@@ -283,7 +295,8 @@ function useWander(
           const rad = 4.8 + Math.random() * 1.2;
           let nx = px + Math.cos(ang) * rad;
           let nz = pz + Math.sin(ang) * rad;
-          if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) nx = (nx >= 0 ? 1 : -1) * (STREAM_HALF_WIDTH + 1);
+          if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) nx = c.bankSide * (STREAM_HALF_WIDTH + 1);
+          if (c.bankSide * nx < STREAM_HALF_WIDTH + 1) nx = c.bankSide * (STREAM_HALF_WIDTH + 1);
           nx = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nx));
           nz = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nz));
           c.pos.x = nx;
