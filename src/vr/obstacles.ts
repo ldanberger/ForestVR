@@ -70,3 +70,38 @@ export function resolveObstacleCollision(pos: { x: number; z: number }, agentR =
   }
   return hit;
 }
+
+/**
+ * If the desired heading points into an obstacle within `lookahead`, return an
+ * adjusted heading that steers around it (whichever side is closer). Otherwise
+ * returns the desired heading unchanged.
+ */
+export function steerAroundObstacles(
+  x: number,
+  z: number,
+  desiredHeading: number,
+  lookahead: number,
+  agentR = 0.5,
+): number {
+  const obs = getObstacles();
+  const dirX = Math.cos(desiredHeading);
+  const dirZ = Math.sin(desiredHeading);
+  let best: { o: Obstacle; along: number } | null = null;
+  for (const o of obs) {
+    const dx = o.x - x;
+    const dz = o.z - z;
+    const along = dx * dirX + dz * dirZ;
+    if (along <= 0 || along > lookahead) continue;
+    const perp = Math.abs(dx * -dirZ + dz * dirX);
+    if (perp > o.r + agentR + 0.2) continue;
+    if (!best || along < best.along) best = { o, along };
+  }
+  if (!best) return desiredHeading;
+  // Pick the side that requires the smaller turn.
+  const toObs = Math.atan2(best.o.z - z, best.o.x - x);
+  const relative = Math.atan2(Math.sin(desiredHeading - toObs), Math.cos(desiredHeading - toObs));
+  const side = relative >= 0 ? 1 : -1;
+  // Turn ~60° off the obstacle bearing on the chosen side.
+  return toObs + side * (Math.PI / 3);
+}
+
