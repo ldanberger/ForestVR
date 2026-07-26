@@ -41,6 +41,10 @@ export function useUi() {
   return uiState;
 }
 
+// Only treat as a touch device when the primary pointer is coarse (phones/tablets).
+// Many laptops report maxTouchPoints > 0 but still use a mouse — don't show joystick there.
 export const isTouchDevice =
   typeof window !== "undefined" &&
-  ("ontouchstart" in window || (navigator as any).maxTouchPoints > 0);
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(pointer: coarse)").matches &&
+  (("ontouchstart" in window) || (navigator as any).maxTouchPoints > 0);
