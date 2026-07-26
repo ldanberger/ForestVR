@@ -180,36 +180,41 @@ function useWander(
             c.heading = Math.atan2(-dzp, -dxp);
           }
         }
-        // Infection is handled from the non-it side below (with a 3s delay).
+        // "It" animals infect any non-it critter within INFECT_RADIUS on
+        // contact. The freeze window (IT_FREEZE_SECONDS) makes the newly
+        // tagged animal wait before it starts chasing.
+        if (tagState.playerIsIt === false) {
+          const r2 = INFECT_RADIUS * INFECT_RADIUS;
+          for (const other of tagState.critters) {
+            if (other.id === c.id) continue;
+            if (tagState.itIds.has(other.id)) continue;
+            const ox = other.pos.x - c.pos.x;
+            const oz = other.pos.z - c.pos.z;
+            if (ox * ox + oz * oz < r2) tagAnimal(other.id);
+          }
+        }
       } else if (tagState.playerIsIt && distP < FLEE_RADIUS) {
         // Flee from the player.
         c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 6);
         speed = c.speed * FLEE_SPEED_MULT;
         steered = true;
       } else if (!tagState.playerIsIt) {
-        // Player is not "it": non-it animals chase "it" animals and become
-        // "it" after 3 continuous seconds within INFECT_RADIUS.
+        // Player is not "it": non-it animals become "it" on contact with an
+        // "it" animal (within INFECT_RADIUS) and chase "it" animals otherwise.
         const r2 = INFECT_RADIUS * INFECT_RADIUS;
-        let nearIt = false;
         let fleeIt: { dx: number; dz: number } | null = null;
         for (const other of tagState.critters) {
           if (!tagState.itIds.has(other.id)) continue;
           const ox = c.pos.x - other.pos.x;
           const oz = c.pos.z - other.pos.z;
           const od2 = ox * ox + oz * oz;
-          if (od2 < r2) nearIt = true;
+          if (od2 < r2) {
+            tagAnimal(c.id);
+            break;
+          }
           if (!fleeIt && od2 < FLEE_RADIUS * FLEE_RADIUS) {
             fleeIt = { dx: ox, dz: oz };
           }
-        }
-        if (nearIt) {
-          c.infectT += dt;
-          if (c.infectT >= 3) {
-            tagAnimal(c.id);
-            c.infectT = 0;
-          }
-        } else {
-          c.infectT = 0;
         }
         if (!tagState.itIds.has(c.id) && fleeIt) {
           // Non-it animals chase "it" animals to try to tag them.
@@ -217,7 +222,6 @@ function useWander(
           speed = c.speed * FLEE_SPEED_MULT;
           steered = true;
         }
-
       }
 
       if (!steered && Math.sin(t * 0.3 + i) > 0.995) {
