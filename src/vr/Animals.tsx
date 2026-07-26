@@ -16,6 +16,7 @@ import {
   isFrozen,
   inTagCooldown,
   CATCH_RADIUS,
+  INFECT_RADIUS,
   FLEE_RADIUS,
   IT_SPEED_MULT,
   IT_MIN_SPEED,
@@ -180,7 +181,7 @@ function useWander(
         // "It" animals — frozen or chasing — infect any non-it critter they
         // touch. Checking from the "it" side covers frozen taggers too.
         if (tagState.playerIsIt === false) {
-          const r2 = CATCH_RADIUS * CATCH_RADIUS;
+          const r2 = INFECT_RADIUS * INFECT_RADIUS;
           for (const other of tagState.critters) {
             if (other.id === c.id) continue;
             if (tagState.itIds.has(other.id)) continue;
@@ -197,7 +198,7 @@ function useWander(
       } else if (!tagState.playerIsIt) {
         // Player is not "it": any non-it animal that brushes an "it" animal
         // becomes "it" too. Also gives the player some space during chases.
-        const r2 = CATCH_RADIUS * CATCH_RADIUS;
+        const r2 = INFECT_RADIUS * INFECT_RADIUS;
         let fleeIt: { dx: number; dz: number } | null = null;
         for (const other of tagState.critters) {
           if (!tagState.itIds.has(other.id)) continue;
