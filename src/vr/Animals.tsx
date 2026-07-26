@@ -282,6 +282,7 @@ function useWander(
           if (c.pos.z > IT_WORLD_LIMIT) c.pos.z = IT_WORLD_LIMIT;
           else if (c.pos.z < -IT_WORLD_LIMIT) c.pos.z = -IT_WORLD_LIMIT;
           resolveObstacleCollision(c.pos, agentR);
+          if (c.bankSide * c.pos.x < bank) c.pos.x = c.bankSide * bank;
           c.pos.y = heightAt(c.pos.x, c.pos.z);
         }
         const distAfterLunge = Math.hypot(px - c.pos.x, pz - c.pos.z) || 0.0001;
