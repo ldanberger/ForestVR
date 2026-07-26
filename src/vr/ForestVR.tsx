@@ -24,11 +24,10 @@ import {
 
 const store = createXRStore({
   foveation: 0,
-  // Ask the runtime for local-floor so the world sits at ground level in the headset.
-  sessionInit: {
-    optionalFeatures: ["local-floor", "bounded-floor", "hand-tracking", "layers"],
-  },
+  offerSession: "immersive-vr",
+  hand: { teleportPointer: true },
 });
+
 
 async function enterVRSafely() {
   try {
