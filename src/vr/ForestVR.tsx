@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef, useState } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Sky, Environment, Cloud, Clouds } from "@react-three/drei";
 import { XR, createXRStore, useXR } from "@react-three/xr";
 import * as THREE from "three";
