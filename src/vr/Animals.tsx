@@ -384,6 +384,7 @@ function useWander(
         const mark = child.getObjectByName("itMark");
         if (mark) mark.visible = isIt;
         animate(child, t, c, speed);
+        if (c.caughtPlayer) tintCaught(child);
       }
     });
   });
