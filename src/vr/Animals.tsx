@@ -38,6 +38,7 @@ type Critter = {
   itChaseT: number;
   itBestDist: number;
   itNoCloseT: number;
+  infectT: number;
 };
 
 const WORLD_LIMIT = 55;
@@ -109,6 +110,7 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       itChaseT: 0,
       itBestDist: Infinity,
       itNoCloseT: 0,
+      infectT: 0,
     };
     arr.push(critter);
   }
@@ -178,40 +180,36 @@ function useWander(
             c.heading = Math.atan2(-dzp, -dxp);
           }
         }
-        // "It" animals — frozen or chasing — infect any non-it critter they
-        // touch. Checking from the "it" side covers frozen taggers too.
-        if (tagState.playerIsIt === false) {
-          const r2 = INFECT_RADIUS * INFECT_RADIUS;
-          for (const other of tagState.critters) {
-            if (other.id === c.id) continue;
-            if (tagState.itIds.has(other.id)) continue;
-            const ox = other.pos.x - c.pos.x;
-            const oz = other.pos.z - c.pos.z;
-            if (ox * ox + oz * oz < r2) tagAnimal(other.id);
-          }
-        }
+        // Infection is handled from the non-it side below (with a 3s delay).
       } else if (tagState.playerIsIt && distP < FLEE_RADIUS) {
         // Flee from the player.
         c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 6);
         speed = c.speed * FLEE_SPEED_MULT;
         steered = true;
       } else if (!tagState.playerIsIt) {
-        // Player is not "it": any non-it animal that brushes an "it" animal
-        // becomes "it" too. Also gives the player some space during chases.
+        // Player is not "it": non-it animals chase "it" animals and become
+        // "it" after 3 continuous seconds within INFECT_RADIUS.
         const r2 = INFECT_RADIUS * INFECT_RADIUS;
+        let nearIt = false;
         let fleeIt: { dx: number; dz: number } | null = null;
         for (const other of tagState.critters) {
           if (!tagState.itIds.has(other.id)) continue;
           const ox = c.pos.x - other.pos.x;
           const oz = c.pos.z - other.pos.z;
           const od2 = ox * ox + oz * oz;
-          if (od2 < r2) {
-            tagAnimal(c.id);
-            break;
-          }
+          if (od2 < r2) nearIt = true;
           if (!fleeIt && od2 < FLEE_RADIUS * FLEE_RADIUS) {
             fleeIt = { dx: ox, dz: oz };
           }
+        }
+        if (nearIt) {
+          c.infectT += dt;
+          if (c.infectT >= 3) {
+            tagAnimal(c.id);
+            c.infectT = 0;
+          }
+        } else {
+          c.infectT = 0;
         }
         if (!tagState.itIds.has(c.id) && fleeIt) {
           // Non-it animals chase "it" animals to try to tag them.
