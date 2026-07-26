@@ -180,7 +180,19 @@ function useWander(
             c.heading = Math.atan2(-dzp, -dxp);
           }
         }
-        // Infection is handled from the non-it side below (with a 3s delay).
+        // "It" animals infect any non-it critter within INFECT_RADIUS on
+        // contact. The freeze window (IT_FREEZE_SECONDS) makes the newly
+        // tagged animal wait before it starts chasing.
+        if (tagState.playerIsIt === false) {
+          const r2 = INFECT_RADIUS * INFECT_RADIUS;
+          for (const other of tagState.critters) {
+            if (other.id === c.id) continue;
+            if (tagState.itIds.has(other.id)) continue;
+            const ox = other.pos.x - c.pos.x;
+            const oz = other.pos.z - c.pos.z;
+            if (ox * ox + oz * oz < r2) tagAnimal(other.id);
+          }
+        }
       } else if (tagState.playerIsIt && distP < FLEE_RADIUS) {
         // Flee from the player.
         c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 6);
