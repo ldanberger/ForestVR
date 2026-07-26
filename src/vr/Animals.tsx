@@ -33,6 +33,8 @@ type Critter = {
   lastCheckZ: number;
   overlapT: number;
   dead: boolean;
+  itChaseT: number;
+  itBestDist: number;
 };
 
 const WORLD_LIMIT = 55;
@@ -101,6 +103,8 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       lastCheckZ: z,
       overlapT: 0,
       dead: false,
+      itChaseT: 0,
+      itBestDist: Infinity,
     };
     arr.push(critter);
   }
@@ -125,6 +129,10 @@ function useWander(
         return;
       }
       const isIt = tagState.itIds.has(c.id);
+      if (!isIt) {
+        c.itChaseT = 0;
+        c.itBestDist = Infinity;
+      }
       const dxp = px - c.pos.x;
       const dzp = pz - c.pos.z;
       const distP = Math.hypot(dxp, dzp) || 0.0001;
@@ -144,6 +152,8 @@ function useWander(
           // Freshly tagged: stand still for a few seconds.
           speed = 0;
           steered = true;
+          c.itChaseT = t;
+          c.itBestDist = distP;
         } else {
           // Chase the player, steering around trees/rocks in the way and
           // adding a small weave so we don't stall against cover.
@@ -158,6 +168,30 @@ function useWander(
             // After swap this animal is no longer "it"; flee this frame so it
             // moves out of catch range instead of oscillating.
             c.heading = Math.atan2(-dzp, -dxp);
+          }
+          // Chase-progress unstick: if we haven't gotten meaningfully closer
+          // to the player within 3s, teleport to ~9m from them so the chase
+          // stays lively.
+          if (c.itChaseT === 0) {
+            c.itChaseT = t;
+            c.itBestDist = distP;
+          } else if (distP < c.itBestDist - 0.5) {
+            c.itChaseT = t;
+            c.itBestDist = distP;
+          } else if (t - c.itChaseT > 3) {
+            const ang = Math.atan2(c.pos.z - pz, c.pos.x - px) + (Math.random() - 0.5) * 0.6;
+            const rad = 8 + Math.random() * 2;
+            let nx = px + Math.cos(ang) * rad;
+            let nz = pz + Math.sin(ang) * rad;
+            if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) nx = (nx >= 0 ? 1 : -1) * (STREAM_HALF_WIDTH + 1);
+            nx = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nx));
+            nz = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nz));
+            c.pos.x = nx;
+            c.pos.z = nz;
+            c.pos.y = heightAt(nx, nz);
+            c.heading = Math.atan2(pz - nz, px - nx);
+            c.itChaseT = t;
+            c.itBestDist = Math.hypot(px - nx, pz - nz);
           }
         }
         // "It" animals — frozen or chasing — infect any non-it critter they
