@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
+import { resolveObstacleCollision } from "./obstacles";
 import { survivalState, ANIMAL_EAT_RADIUS } from "./survivalState";
 import { playerState } from "./playerState";
 import {
@@ -144,8 +145,10 @@ function useWander(
           speed = 0;
           steered = true;
         } else {
-          // Chase the player.
-          c.heading = turnToward(c.heading, Math.atan2(dzp, dxp), dt * 7);
+          // Chase the player, but weave so we don't sit still against obstacles.
+          const weave = Math.sin(t * 1.7 + c.phase) * 0.5;
+          const chaseHeading = Math.atan2(dzp, dxp) + weave;
+          c.heading = turnToward(c.heading, chaseHeading, dt * 7);
           speed = c.speed * IT_SPEED_MULT;
           steered = true;
           if (!cooling && distP < itCatchR) {
@@ -218,6 +221,11 @@ function useWander(
         else if (c.pos.z < -IT_WORLD_LIMIT) c.pos.z = -IT_WORLD_LIMIT;
       } else {
         steerOutOfRestrictedArea(c, speed, dt);
+      }
+      // Trees & rocks: push out if we walked into one and nudge heading away.
+      const agentR = (isIt ? 2 : 1) * 0.35;
+      if (resolveObstacleCollision(c.pos, agentR)) {
+        c.heading += (Math.random() - 0.5) * 1.2;
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
