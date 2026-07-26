@@ -170,6 +170,7 @@ function useWander(
           child.scale.setScalar(1);
           const mark = child.getObjectByName("itMark");
           if (mark) mark.visible = false;
+          if (c.caughtPlayer) tintCaught(child);
         }
         return;
       }
