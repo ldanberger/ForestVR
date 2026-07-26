@@ -206,6 +206,18 @@ export function Minimap() {
         Map · explore to reveal
       </div>
       <NearestItReadout />
+      <div
+        style={{
+          color: "#bbb",
+          fontSize: 10,
+          textAlign: "center",
+          marginTop: 4,
+          fontFamily: "sans-serif",
+          letterSpacing: 0.3,
+        }}
+      >
+        v{APP_VERSION}
+      </div>
     </div>
   );
 }
