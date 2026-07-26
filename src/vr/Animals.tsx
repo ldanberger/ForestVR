@@ -181,7 +181,7 @@ function useWander(
         // "It" animals — frozen or chasing — infect any non-it critter they
         // touch. Checking from the "it" side covers frozen taggers too.
         if (tagState.playerIsIt === false) {
-          const r2 = CATCH_RADIUS * CATCH_RADIUS;
+          const r2 = INFECT_RADIUS * INFECT_RADIUS;
           for (const other of tagState.critters) {
             if (other.id === c.id) continue;
             if (tagState.itIds.has(other.id)) continue;
