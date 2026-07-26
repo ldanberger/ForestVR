@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
+import { resolveObstacleCollision } from "./obstacles";
 import { survivalState, ANIMAL_EAT_RADIUS } from "./survivalState";
 import { playerState } from "./playerState";
 import {
