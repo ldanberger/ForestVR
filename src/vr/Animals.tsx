@@ -40,6 +40,7 @@ type Critter = {
   itNoCloseT: number;
   infectT: number;
   bankSide: 1 | -1;
+  celebrateUntil: number;
 };
 
 const WORLD_LIMIT = 55;
@@ -113,6 +114,7 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       itNoCloseT: 0,
       infectT: 0,
       bankSide: x >= 0 ? 1 : -1,
+      celebrateUntil: 0,
     };
     arr.push(critter);
   }
@@ -134,6 +136,20 @@ function useWander(
       const child = groupRef.current!.children[i] as THREE.Object3D | undefined;
       if (c.dead) {
         if (child) child.visible = false;
+        return;
+      }
+      // Celebration: after catching the player, this animal jumps in place
+      // for 5 seconds and skips all AI/movement logic.
+      if (t < c.celebrateUntil) {
+        if (child) {
+          child.visible = true;
+          const jump = Math.abs(Math.sin((c.celebrateUntil - t) * 9)) * 0.9;
+          child.position.set(c.pos.x, c.pos.y + jump, c.pos.z);
+          child.rotation.y = -c.heading + Math.PI / 2;
+          child.scale.setScalar(1);
+          const mark = child.getObjectByName("itMark");
+          if (mark) mark.visible = false;
+        }
         return;
       }
       const isIt = tagState.itIds.has(c.id);
@@ -177,6 +193,7 @@ function useWander(
           steered = true;
           if (!cooling && distP < itCatchR) {
             playerCaught();
+            c.celebrateUntil = t + 5;
             // After swap this animal is no longer "it"; flee this frame so it
             // moves out of catch range instead of oscillating.
             c.heading = Math.atan2(-dzp, -dxp);
@@ -288,6 +305,7 @@ function useWander(
         const distAfterLunge = Math.hypot(px - c.pos.x, pz - c.pos.z) || 0.0001;
         if (!cooling && distAfterLunge < itCatchR) {
           playerCaught();
+          c.celebrateUntil = t + 5;
           c.heading = Math.atan2(c.pos.z - pz, c.pos.x - px);
           c.itNoCloseT = 0;
         } else if (c.itNoCloseT > 1.1 && distAfterLunge > 4) {
