@@ -522,10 +522,7 @@ export function Rabbits() {
   }, [critters]);
   useWander(critters, groupRef, (child, t, c) => {
     const phase = c.phase;
-    const hop = Math.max(0, Math.sin(t * 5 + phase)) * 0.22;
-    child.position.y += hop;
-    const pitch = Math.cos(t * 5 + phase) * 0.15;
-    child.rotation.x = pitch;
+    // Rabbits walk on the ground now; no hop.
     const earL = child.getObjectByName("earL");
     const earR = child.getObjectByName("earR");
     if (earL) earL.rotation.z = -0.15 + Math.sin(t * 3 + phase) * 0.1;
