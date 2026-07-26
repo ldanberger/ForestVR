@@ -168,7 +168,7 @@ function useWander(
           const rawChase = Math.atan2(dzp, dxp);
           const avoid = forceDirect ? rawChase : steerAroundObstacles(c.pos.x, c.pos.z, rawChase, 2.6, 0.7);
           c.heading = turnToward(c.heading, avoid + weave, dt * 7);
-          speed = c.speed * IT_SPEED_MULT;
+          speed = Math.max(c.speed * IT_SPEED_MULT, IT_MIN_SPEED);
           steered = true;
           if (!cooling && distP < itCatchR) {
             playerCaught();
