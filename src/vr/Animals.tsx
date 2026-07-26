@@ -222,6 +222,11 @@ function useWander(
       } else {
         steerOutOfRestrictedArea(c, speed, dt);
       }
+      // Trees & rocks: push out if we walked into one and nudge heading away.
+      const agentR = (isIt ? 2 : 1) * 0.35;
+      if (resolveObstacleCollision(c.pos, agentR)) {
+        c.heading += (Math.random() - 0.5) * 1.2;
+      }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
       // Animal-animal separation: prevent critters from stacking on the same
