@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { survivalState, eatFromBackpack, resetSurvival } from "./survivalState";
+import { survivalState, eatFromBackpack, resetSurvival, MAX_STAT } from "./survivalState";
 
 export function SurvivalHUD() {
   const [, tick] = useState(0);
@@ -13,8 +13,8 @@ export function SurvivalHUD() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const food = Math.max(0, Math.min(100, survivalState.food));
-  const water = Math.max(0, Math.min(100, survivalState.water));
+  const food = Math.max(0, Math.min(MAX_STAT, survivalState.food));
+  const water = Math.max(0, Math.min(MAX_STAT, survivalState.water));
   const backpack = survivalState.backpack;
   const gameOver = survivalState.gameOver;
 
@@ -35,7 +35,7 @@ export function SurvivalHUD() {
       >
         <div
           style={{
-            width: `${val}%`,
+            width: `${(val / MAX_STAT) * 100}%`,
             height: "100%",
             background: color,
             transition: "width 120ms linear",

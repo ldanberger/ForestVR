@@ -9,6 +9,7 @@ import {
   FOOD_DRAIN_PER_M,
   WATER_DRAIN_PER_M,
   WATER_GAIN_PER_S,
+  MAX_STAT,
 } from "./survivalState";
 import { STREAM_HALF_WIDTH } from "./useHeightAt";
 import { uiState, toggleInstructions } from "./uiState";
@@ -190,7 +191,7 @@ export function Player() {
     }
     // Standing in / at the stream refills water without removing it from the map.
     if (Math.abs(playerState.pos.x) < STREAM_HALF_WIDTH + 0.6) {
-      survivalState.water = Math.min(100, survivalState.water + WATER_GAIN_PER_S * dt);
+      survivalState.water = Math.min(MAX_STAT, survivalState.water + WATER_GAIN_PER_S * dt);
     }
     if (survivalState.food <= 0 || survivalState.water <= 0) {
       survivalState.gameOver = true;
