@@ -52,6 +52,12 @@ export function getObstacles(): Obstacle[] {
 export function resolveObstacleCollision(pos: { x: number; z: number }, agentR = 0.35): boolean {
   const obs = getObstacles();
   let hit = false;
+  // Water strip along x = 0: push agents out to the nearest bank.
+  const bank = STREAM_HALF_WIDTH + agentR;
+  if (Math.abs(pos.x) < bank) {
+    pos.x = pos.x >= 0 ? bank : -bank;
+    hit = true;
+  }
   for (const o of obs) {
     const dx = pos.x - o.x;
     const dz = pos.z - o.z;
