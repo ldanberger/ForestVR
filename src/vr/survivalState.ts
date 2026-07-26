@@ -9,7 +9,7 @@ export type Carrot = {
   foundByPlayer: boolean;
 };
 
-export const STARTING_BACKPACK = 10;
+export const STARTING_BACKPACK = 200;
 export const MAX_STAT = 200;
 
 export const survivalState = {
