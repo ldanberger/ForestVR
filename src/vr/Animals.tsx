@@ -198,7 +198,7 @@ function useWander(
       } else if (!tagState.playerIsIt) {
         // Player is not "it": any non-it animal that brushes an "it" animal
         // becomes "it" too. Also gives the player some space during chases.
-        const r2 = CATCH_RADIUS * CATCH_RADIUS;
+        const r2 = INFECT_RADIUS * INFECT_RADIUS;
         let fleeIt: { dx: number; dz: number } | null = null;
         for (const other of tagState.critters) {
           if (!tagState.itIds.has(other.id)) continue;
