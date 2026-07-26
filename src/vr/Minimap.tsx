@@ -205,6 +205,51 @@ export function Minimap() {
       <div style={{ color: "#fff", fontSize: 11, textAlign: "center", marginTop: 4, fontFamily: "sans-serif" }}>
         Map · explore to reveal
       </div>
+      <NearestItReadout />
     </div>
+  );
+}
+
+function NearestItReadout() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const el = ref.current;
+      if (el) {
+        let best = Infinity;
+        for (const c of tagState.critters) {
+          if (!tagState.itIds.has(c.id)) continue;
+          const dx = c.pos.x - playerState.pos.x;
+          const dz = c.pos.z - playerState.pos.z;
+          const d = Math.hypot(dx, dz);
+          if (d < best) best = d;
+        }
+        if (!isFinite(best)) {
+          el.textContent = tagState.playerIsIt ? "You are IT" : "No 'it' animals";
+          el.style.color = "#9fe89f";
+        } else {
+          el.textContent = `Nearest IT: ${best.toFixed(1)} m`;
+          el.style.color = best < 6 ? "#ff6a6a" : best < 15 ? "#ffd23f" : "#fff";
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div
+      ref={ref}
+      style={{
+        color: "#fff",
+        fontSize: 12,
+        fontWeight: 700,
+        textAlign: "center",
+        marginTop: 2,
+        fontFamily: "sans-serif",
+        textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+      }}
+    />
   );
 }
