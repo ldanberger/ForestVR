@@ -38,6 +38,7 @@ type Critter = {
   itChaseT: number;
   itBestDist: number;
   itNoCloseT: number;
+  infectT: number;
 };
 
 const WORLD_LIMIT = 55;
