@@ -13,6 +13,8 @@ export type TagCritter = {
 };
 
 export const CATCH_RADIUS = 1.1;
+/** Radius within which an "it" animal infects a non-it animal. */
+export const INFECT_RADIUS = 5;
 export const FLEE_RADIUS = 18;
 // Player moves at 4 m/s, so "it" animals need to be clearly faster to catch up.
 export const IT_SPEED_MULT = 3.2;
