@@ -138,6 +138,20 @@ function useWander(
         if (child) child.visible = false;
         return;
       }
+      // Celebration: after catching the player, this animal jumps in place
+      // for 5 seconds and skips all AI/movement logic.
+      if (t < c.celebrateUntil) {
+        if (child) {
+          child.visible = true;
+          const jump = Math.abs(Math.sin((c.celebrateUntil - t) * 9)) * 0.9;
+          child.position.set(c.pos.x, c.pos.y + jump, c.pos.z);
+          child.rotation.y = -c.heading + Math.PI / 2;
+          child.scale.setScalar(1);
+          const mark = child.getObjectByName("itMark");
+          if (mark) mark.visible = false;
+        }
+        return;
+      }
       const isIt = tagState.itIds.has(c.id);
       if (!isIt) {
         c.itChaseT = 0;
