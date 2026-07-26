@@ -248,6 +248,15 @@ function useWander(
         if (isIt) c.heading = Math.atan2(pz - c.pos.z, px - c.pos.x);
         else c.heading += (Math.random() - 0.5) * 1.2;
       }
+      // Water is impassable: keep every animal on its birth bank.
+      const bank = STREAM_HALF_WIDTH + agentR;
+      if (c.bankSide * c.pos.x < bank) {
+        c.pos.x = c.bankSide * bank;
+        // If heading points across the stream, turn to run along it instead.
+        if (c.bankSide * Math.cos(c.heading) < 0) {
+          c.heading = Math.sin(c.heading) >= 0 ? Math.PI / 2 : -Math.PI / 2;
+        }
+      }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
       // Hard guarantee for "it" animals: if this frame did not reduce the
