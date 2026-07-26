@@ -153,16 +153,18 @@ function useWander(
             // After swap this animal is no longer "it"; flee this frame so it
             // moves out of catch range instead of oscillating.
             c.heading = Math.atan2(-dzp, -dxp);
-          } else {
-            // Tag any non-it critter we brush against.
-            const r2 = CATCH_RADIUS * CATCH_RADIUS;
-            for (const other of tagState.critters) {
-              if (other.id === c.id) continue;
-              if (tagState.itIds.has(other.id)) continue;
-              const ox = other.pos.x - c.pos.x;
-              const oz = other.pos.z - c.pos.z;
-              if (ox * ox + oz * oz < r2) tagAnimal(other.id);
-            }
+          }
+        }
+        // "It" animals — frozen or chasing — infect any non-it critter they
+        // touch. Checking from the "it" side covers frozen taggers too.
+        if (tagState.playerIsIt === false) {
+          const r2 = CATCH_RADIUS * CATCH_RADIUS;
+          for (const other of tagState.critters) {
+            if (other.id === c.id) continue;
+            if (tagState.itIds.has(other.id)) continue;
+            const ox = other.pos.x - c.pos.x;
+            const oz = other.pos.z - c.pos.z;
+            if (ox * ox + oz * oz < r2) tagAnimal(other.id);
           }
         }
       } else if (tagState.playerIsIt && distP < FLEE_RADIUS) {
@@ -170,11 +172,35 @@ function useWander(
         c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 6);
         speed = c.speed * FLEE_SPEED_MULT;
         steered = true;
-      } else if (!tagState.playerIsIt && distP < FLEE_RADIUS * 0.6) {
-        // A non-it animal also gives the player space while chased.
-        c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 5);
-        speed = c.speed * 1.1;
-        steered = true;
+      } else if (!tagState.playerIsIt) {
+        // Player is not "it": any non-it animal that brushes an "it" animal
+        // becomes "it" too. Also gives the player some space during chases.
+        const r2 = CATCH_RADIUS * CATCH_RADIUS;
+        let fleeIt: { dx: number; dz: number } | null = null;
+        for (const other of tagState.critters) {
+          if (!tagState.itIds.has(other.id)) continue;
+          const ox = c.pos.x - other.pos.x;
+          const oz = c.pos.z - other.pos.z;
+          const od2 = ox * ox + oz * oz;
+          if (od2 < r2) {
+            tagAnimal(c.id);
+            break;
+          }
+          if (!fleeIt && od2 < FLEE_RADIUS * FLEE_RADIUS) {
+            fleeIt = { dx: ox, dz: oz };
+          }
+        }
+        if (!tagState.itIds.has(c.id) && fleeIt) {
+          // Non-it animals also flee from "it" animals so they don't sit still
+          // and get tagged trivially.
+          c.heading = turnToward(c.heading, Math.atan2(fleeIt.dz, fleeIt.dx), dt * 5);
+          speed = c.speed * FLEE_SPEED_MULT;
+          steered = true;
+        } else if (distP < FLEE_RADIUS * 0.6) {
+          c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 5);
+          speed = c.speed * 1.1;
+          steered = true;
+        }
       }
 
       if (!steered && Math.sin(t * 0.3 + i) > 0.995) {
