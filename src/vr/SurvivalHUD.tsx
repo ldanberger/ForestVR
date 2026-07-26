@@ -35,7 +35,7 @@ export function SurvivalHUD() {
       >
         <div
           style={{
-            width: `${val}%`,
+            width: `${(val / MAX_STAT) * 100}%`,
             height: "100%",
             background: color,
             transition: "width 120ms linear",
