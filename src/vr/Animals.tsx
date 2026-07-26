@@ -129,6 +129,10 @@ function useWander(
         return;
       }
       const isIt = tagState.itIds.has(c.id);
+      if (!isIt) {
+        c.itChaseT = 0;
+        c.itBestDist = Infinity;
+      }
       const dxp = px - c.pos.x;
       const dzp = pz - c.pos.z;
       const distP = Math.hypot(dxp, dzp) || 0.0001;
