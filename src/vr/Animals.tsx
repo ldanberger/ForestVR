@@ -145,8 +145,10 @@ function useWander(
           speed = 0;
           steered = true;
         } else {
-          // Chase the player.
-          c.heading = turnToward(c.heading, Math.atan2(dzp, dxp), dt * 7);
+          // Chase the player, but weave so we don't sit still against obstacles.
+          const weave = Math.sin(t * 1.7 + c.phase) * 0.5;
+          const chaseHeading = Math.atan2(dzp, dxp) + weave;
+          c.heading = turnToward(c.heading, chaseHeading, dt * 7);
           speed = c.speed * IT_SPEED_MULT;
           steered = true;
           if (!cooling && distP < itCatchR) {
