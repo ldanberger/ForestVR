@@ -295,7 +295,8 @@ function useWander(
           const rad = 4.8 + Math.random() * 1.2;
           let nx = px + Math.cos(ang) * rad;
           let nz = pz + Math.sin(ang) * rad;
-          if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) nx = (nx >= 0 ? 1 : -1) * (STREAM_HALF_WIDTH + 1);
+          if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) nx = c.bankSide * (STREAM_HALF_WIDTH + 1);
+          if (c.bankSide * nx < STREAM_HALF_WIDTH + 1) nx = c.bankSide * (STREAM_HALF_WIDTH + 1);
           nx = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nx));
           nz = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nz));
           c.pos.x = nx;
