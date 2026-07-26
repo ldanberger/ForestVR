@@ -40,6 +40,7 @@ type Critter = {
   itNoCloseT: number;
   infectT: number;
   bankSide: 1 | -1;
+  celebrateUntil: number;
 };
 
 const WORLD_LIMIT = 55;
