@@ -193,6 +193,7 @@ function useWander(
           steered = true;
           if (!cooling && distP < itCatchR) {
             playerCaught();
+            c.celebrateUntil = t + 5;
             // After swap this animal is no longer "it"; flee this frame so it
             // moves out of catch range instead of oscillating.
             c.heading = Math.atan2(-dzp, -dxp);
@@ -304,6 +305,7 @@ function useWander(
         const distAfterLunge = Math.hypot(px - c.pos.x, pz - c.pos.z) || 0.0001;
         if (!cooling && distAfterLunge < itCatchR) {
           playerCaught();
+          c.celebrateUntil = t + 5;
           c.heading = Math.atan2(c.pos.z - pz, c.pos.x - px);
           c.itNoCloseT = 0;
         } else if (c.itNoCloseT > 1.1 && distAfterLunge > 4) {
