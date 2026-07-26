@@ -216,6 +216,7 @@ function useWander(
           if (!cooling && distP < itCatchR) {
             playerCaught();
             c.celebrateUntil = t + 5;
+            c.caughtPlayer = true;
             // After swap this animal is no longer "it"; flee this frame so it
             // moves out of catch range instead of oscillating.
             c.heading = Math.atan2(-dzp, -dxp);
