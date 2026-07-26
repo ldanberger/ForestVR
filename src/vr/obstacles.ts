@@ -52,6 +52,12 @@ export function getObstacles(): Obstacle[] {
 export function resolveObstacleCollision(pos: { x: number; z: number }, agentR = 0.35): boolean {
   const obs = getObstacles();
   let hit = false;
+  // Water strip along x = 0: push agents out to the nearest bank.
+  const bank = STREAM_HALF_WIDTH + agentR;
+  if (Math.abs(pos.x) < bank) {
+    pos.x = pos.x >= 0 ? bank : -bank;
+    hit = true;
+  }
   for (const o of obs) {
     const dx = pos.x - o.x;
     const dz = pos.z - o.z;
@@ -86,6 +92,20 @@ export function steerAroundObstacles(
   const obs = getObstacles();
   const dirX = Math.cos(desiredHeading);
   const dirZ = Math.sin(desiredHeading);
+  // Water strip along x = 0: if heading would cross or enter the stream within
+  // lookahead, steer parallel to it along the current bank.
+  const bank = STREAM_HALF_WIDTH + agentR;
+  const sideSign = x >= 0 ? 1 : -1;
+  const signedDist = sideSign * x - bank; // >0 outside bank, <0 inside/over
+  const approach = -sideSign * dirX; // >0 when heading toward water
+  if (approach > 1e-3) {
+    const distToBank = Math.max(signedDist, 0);
+    if (distToBank < lookahead) {
+      // Turn to run along the stream (±z), preferring the smaller course change.
+      const alongZ = dirZ >= 0 ? Math.PI / 2 : -Math.PI / 2;
+      return alongZ;
+    }
+  }
   let best: { o: Obstacle; along: number } | null = null;
   for (const o of obs) {
     const dx = o.x - x;
