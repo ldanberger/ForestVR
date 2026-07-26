@@ -18,6 +18,7 @@ import {
   CATCH_RADIUS,
   FLEE_RADIUS,
   IT_SPEED_MULT,
+  IT_MIN_SPEED,
   FLEE_SPEED_MULT,
 } from "./tagState";
 
