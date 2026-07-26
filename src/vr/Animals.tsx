@@ -135,6 +135,7 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       infectT: 0,
       bankSide: x >= 0 ? 1 : -1,
       celebrateUntil: 0,
+      caughtPlayer: false,
     };
     arr.push(critter);
   }
