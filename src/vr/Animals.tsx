@@ -41,7 +41,27 @@ type Critter = {
   infectT: number;
   bankSide: 1 | -1;
   celebrateUntil: number;
+  caughtPlayer: boolean;
 };
+
+const CAUGHT_BLUE = new THREE.Color("#1e73ff");
+
+function tintCaught(child: THREE.Object3D) {
+  child.traverse((obj) => {
+    if (obj.name === "itMark") return;
+    const mesh = obj as THREE.Mesh;
+    const mat = mesh.material as THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[] | undefined;
+    if (!mat) return;
+    const apply = (m: THREE.MeshStandardMaterial) => {
+      if ((m as unknown as { __caughtBlue?: boolean }).__caughtBlue) return;
+      if (m.color) m.color.copy(CAUGHT_BLUE);
+      if (m.emissive) m.emissive.setRGB(0.05, 0.15, 0.4);
+      (m as unknown as { __caughtBlue?: boolean }).__caughtBlue = true;
+    };
+    if (Array.isArray(mat)) mat.forEach(apply);
+    else apply(mat);
+  });
+}
 
 const WORLD_LIMIT = 55;
 const IT_WORLD_LIMIT = 58;
@@ -115,6 +135,7 @@ function makeCritters(count: number, seed: number, speed: number, species: "rabb
       infectT: 0,
       bankSide: x >= 0 ? 1 : -1,
       celebrateUntil: 0,
+      caughtPlayer: false,
     };
     arr.push(critter);
   }
@@ -149,6 +170,7 @@ function useWander(
           child.scale.setScalar(1);
           const mark = child.getObjectByName("itMark");
           if (mark) mark.visible = false;
+          if (c.caughtPlayer) tintCaught(child);
         }
         return;
       }
@@ -194,6 +216,7 @@ function useWander(
           if (!cooling && distP < itCatchR) {
             playerCaught();
             c.celebrateUntil = t + 5;
+            c.caughtPlayer = true;
             // After swap this animal is no longer "it"; flee this frame so it
             // moves out of catch range instead of oscillating.
             c.heading = Math.atan2(-dzp, -dxp);
@@ -276,56 +299,6 @@ function useWander(
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
-      // Hard guarantee for "it" animals: if this frame did not reduce the
-      // player distance, immediately lunge straight at the player. This fixes
-      // the visible stall case where an animal is nearby with no obstacle but
-      // its heading/avoidance keeps it from actually closing.
-      if (isIt && !isFrozen(c.id) && !tagState.playerIsIt) {
-        const distAfterMove = Math.hypot(px - c.pos.x, pz - c.pos.z) || 0.0001;
-        const closedBy = distP - distAfterMove;
-        if (closedBy > 0.03) {
-          c.itNoCloseT = Math.max(0, c.itNoCloseT - dt * 2);
-        } else {
-          c.itNoCloseT += dt;
-        }
-        if (c.itNoCloseT > 0.35 && distAfterMove > itCatchR) {
-          const direct = Math.atan2(pz - c.pos.z, px - c.pos.x);
-          const lunge = speed * dt * 1.6;
-          c.heading = direct;
-          c.pos.x += Math.cos(direct) * lunge;
-          c.pos.z += Math.sin(direct) * lunge;
-          if (c.pos.x > IT_WORLD_LIMIT) c.pos.x = IT_WORLD_LIMIT;
-          else if (c.pos.x < -IT_WORLD_LIMIT) c.pos.x = -IT_WORLD_LIMIT;
-          if (c.pos.z > IT_WORLD_LIMIT) c.pos.z = IT_WORLD_LIMIT;
-          else if (c.pos.z < -IT_WORLD_LIMIT) c.pos.z = -IT_WORLD_LIMIT;
-          resolveObstacleCollision(c.pos, agentR);
-          if (c.bankSide * c.pos.x < bank) c.pos.x = c.bankSide * bank;
-          c.pos.y = heightAt(c.pos.x, c.pos.z);
-        }
-        const distAfterLunge = Math.hypot(px - c.pos.x, pz - c.pos.z) || 0.0001;
-        if (!cooling && distAfterLunge < itCatchR) {
-          playerCaught();
-          c.celebrateUntil = t + 5;
-          c.heading = Math.atan2(c.pos.z - pz, c.pos.x - px);
-          c.itNoCloseT = 0;
-        } else if (c.itNoCloseT > 1.1 && distAfterLunge > 4) {
-          const ang = Math.atan2(c.pos.z - pz, c.pos.x - px) + (Math.random() - 0.5) * 0.45;
-          const rad = 4.8 + Math.random() * 1.2;
-          let nx = px + Math.cos(ang) * rad;
-          let nz = pz + Math.sin(ang) * rad;
-          if (Math.abs(nx) < STREAM_HALF_WIDTH + 1) nx = c.bankSide * (STREAM_HALF_WIDTH + 1);
-          if (c.bankSide * nx < STREAM_HALF_WIDTH + 1) nx = c.bankSide * (STREAM_HALF_WIDTH + 1);
-          nx = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nx));
-          nz = Math.max(-IT_WORLD_LIMIT, Math.min(IT_WORLD_LIMIT, nz));
-          c.pos.x = nx;
-          c.pos.z = nz;
-          c.pos.y = heightAt(nx, nz);
-          c.heading = Math.atan2(pz - nz, px - nx);
-          c.itNoCloseT = 0;
-          c.itChaseT = t;
-          c.itBestDist = Math.hypot(px - nx, pz - nz);
-        }
-      }
 
       // Animal-animal separation: prevent critters from stacking on the same
       // spot (especially "it" animals converging on the player or a fresh tag
@@ -411,6 +384,7 @@ function useWander(
         const mark = child.getObjectByName("itMark");
         if (mark) mark.visible = isIt;
         animate(child, t, c, speed);
+        if (c.caughtPlayer) tintCaught(child);
       }
     });
   });

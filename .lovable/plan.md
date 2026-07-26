@@ -1,27 +1,19 @@
-## Root cause (confirmed)
+## Changes to `src/vr/Animals.tsx`
 
-The bug isn't triggered by eating itself — it's triggered by the food-based player-speed rule. Eating a carrot pushes `survivalState.food` back over the fast threshold, so `src/vr/Player.tsx` moves the player at `MOVE_SPEED_FAST = 7 m/s`. Meanwhile in `src/vr/Animals.tsx`, "it" animals chase at `c.speed * IT_SPEED_MULT`:
+1. **Remove the hard-guarantee lunge block** (~line 289).
+   - Delete the `itNoCloseT` accumulator, forced heading override, extra lunge step, and its post-lunge distance re-check / `playerCaught()` call.
+   - Keep only the steering-based catch (distance check inside the normal chase branch) as the single catch pathway.
 
-- Rabbit base `1.2` × `IT_SPEED_MULT 3.2` = **3.84 m/s**
-- Fox base `1.9` × `IT_SPEED_MULT 3.2` = **6.08 m/s**
+2. **Mark the catching animal blue permanently.**
+   - Add a `caughtPlayer: boolean` flag to each critter's state (default `false`).
+   - When the steering catch fires `playerCaught()`, also set `c.caughtPlayer = true` on that critter.
+   - In the render/material step, if `c.caughtPlayer` is true, override the mesh color to blue for the rest of the session (takes precedence over the red "it" tint and normal species color).
+   - Persist across future tag swaps — the flag is never cleared, so once blue, always blue.
 
-Both are slower than a well-fed player, so once the player runs, the chaser can never close the gap — it just tracks along at the maximum distance the AI is willing to hold. The occasional 1.6× "hard-guarantee lunge" is a single-frame boost and can't sustain pursuit.
+3. **Minimap** (`src/vr/Minimap.tsx`): bump `APP_VERSION` to `0.35.0`.
 
-## Fix
+## Notes
 
-Guarantee that any "it" animal is faster than the fastest player state, regardless of species base speed.
-
-1. `src/vr/tagState.ts`
-   - Add `export const IT_MIN_SPEED = 7.8;` (≈ player fast 7 m/s + margin).
-
-2. `src/vr/Animals.tsx`
-   - Import `IT_MIN_SPEED`.
-   - In the chase branch (currently `speed = c.speed * IT_SPEED_MULT;`) use `speed = Math.max(c.speed * IT_SPEED_MULT, IT_MIN_SPEED);` so both rabbits and foxes exceed the player's top speed while "it".
-   - Apply the same floor to the hard-lunge step so the lunge distance also reflects the boosted speed.
-
-No changes to survival, carrot, or player-speed logic — those already behave as previously specified.
-
-## Verification
-
-- Read the two edited files back after the change.
-- Confirm in the preview that an "it" fox/rabbit closes on a well-fed player who eats a carrot and runs, instead of pacing at a fixed distance.
+- No changes to `tagState.ts`, catch radius, freeze, cooldown, or infection logic.
+- The 5-second celebration jump stays as-is.
+- Multiple animals can end up blue over a long session (each new catcher joins the blue set).
