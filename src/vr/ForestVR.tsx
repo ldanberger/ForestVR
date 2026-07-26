@@ -225,7 +225,11 @@ export default function ForestVR() {
             shadow-normalBias={0.04}
           />
           <Sky sunPosition={[40, 55, 25]} turbidity={3} rayleigh={1.2} mieCoefficient={0.005} mieDirectionalG={0.85} />
-          <Environment preset="park" background={false} environmentIntensity={0.6} />
+          {/* HDRI is a network fetch — isolate it so a slow/failed load can't
+              suspend the whole scene (which blacks out the headset). */}
+          <Suspense fallback={null}>
+            <Environment preset="park" background={false} environmentIntensity={0.6} />
+          </Suspense>
           <Clouds material={THREE.MeshBasicMaterial} limit={40}>
             <Cloud seed={1} segments={30} bounds={[8, 2, 4]} volume={7} position={[20, 45, -30]} color="#ffffff" opacity={0.65} />
             <Cloud seed={2} segments={24} bounds={[10, 2, 4]} volume={9} position={[-40, 50, 10]} color="#ffffff" opacity={0.6} />
