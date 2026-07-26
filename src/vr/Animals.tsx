@@ -336,8 +336,8 @@ function useWander(
       }
       c.pos.y = heightAt(c.pos.x, c.pos.z);
 
-      // Unstick: if the critter hasn't moved much in 5s, teleport nearby.
-      // Skip while an "it" animal is frozen — it's supposed to stand still.
+      // Unstick: if the critter hasn't moved much in 5s, nudge its heading so
+      // it walks off in a new direction (no teleporting).
       if (isIt && isFrozen(c.id)) {
         c.lastCheckT = t;
         c.lastCheckX = c.pos.x;
@@ -350,6 +350,12 @@ function useWander(
         const dxm = c.pos.x - c.lastCheckX;
         const dzm = c.pos.z - c.lastCheckZ;
         if (dxm * dxm + dzm * dzm < 0.25) {
+          c.heading = Math.random() * Math.PI * 2;
+        }
+        c.lastCheckT = t;
+        c.lastCheckX = c.pos.x;
+        c.lastCheckZ = c.pos.z;
+      }
           for (let tryI = 0; tryI < 8; tryI++) {
             const ang = Math.random() * Math.PI * 2;
             const rad = 3 + Math.random() * 4;
