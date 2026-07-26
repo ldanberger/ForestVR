@@ -213,16 +213,12 @@ function useWander(
           }
         }
         if (!tagState.itIds.has(c.id) && fleeIt) {
-          // Non-it animals also flee from "it" animals so they don't sit still
-          // and get tagged trivially.
-          c.heading = turnToward(c.heading, Math.atan2(fleeIt.dz, fleeIt.dx), dt * 5);
+          // Non-it animals chase "it" animals to try to tag them.
+          c.heading = turnToward(c.heading, Math.atan2(-fleeIt.dz, -fleeIt.dx), dt * 5);
           speed = c.speed * FLEE_SPEED_MULT;
           steered = true;
-        } else if (distP < FLEE_RADIUS * 0.6) {
-          c.heading = turnToward(c.heading, Math.atan2(-dzp, -dxp), dt * 5);
-          speed = c.speed * 1.1;
-          steered = true;
         }
+
       }
 
       if (!steered && Math.sin(t * 0.3 + i) > 0.995) {
