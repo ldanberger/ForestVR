@@ -14,7 +14,17 @@ import { STREAM_HALF_WIDTH } from "./useHeightAt";
 import { uiState, toggleInstructions } from "./uiState";
 
 const EYE_HEIGHT = 1.6;
-const MOVE_SPEED = 4;
+// Speed scales with food: well-fed sprints past animals, starving lags behind.
+// Fastest "it" animal ≈ 6 m/s (fox × 3.2). Tiers picked around that.
+const MOVE_SPEED_FAST = 7;   // food > 75 — faster than every animal
+const MOVE_SPEED_NORMAL = 6; // 25..75  — matches top "it" speed
+const MOVE_SPEED_SLOW = 3;   // food < 25 — slower than "it" animals
+function currentMoveSpeed() {
+  const f = survivalState.food;
+  if (f > 75) return MOVE_SPEED_FAST;
+  if (f < 25) return MOVE_SPEED_SLOW;
+  return MOVE_SPEED_NORMAL;
+}
 const SNAP_TURN_DEG = 30;
 
 const keys: Record<string, boolean> = {};
@@ -118,8 +128,8 @@ export function Player() {
       if (mx !== 0 || mz !== 0) {
         const mv = new THREE.Vector3().addScaledVector(fwd, mz).addScaledVector(strafe, mx);
         if (mv.lengthSq() > 1) mv.normalize();
-        rig.position.x += mv.x * MOVE_SPEED * dt;
-        rig.position.z += mv.z * MOVE_SPEED * dt;
+        rig.position.x += mv.x * currentMoveSpeed() * dt;
+        rig.position.z += mv.z * currentMoveSpeed() * dt;
       }
 
       // Snap turn
@@ -155,8 +165,8 @@ export function Player() {
       if (mx !== 0 || mz !== 0) {
         const mv = new THREE.Vector3().addScaledVector(fwd, mz).addScaledVector(strafe, mx);
         if (mv.lengthSq() > 1) mv.normalize();
-        camera.position.x += mv.x * MOVE_SPEED * dt;
-        camera.position.z += mv.z * MOVE_SPEED * dt;
+        camera.position.x += mv.x * currentMoveSpeed() * dt;
+        camera.position.z += mv.z * currentMoveSpeed() * dt;
       }
       camera.position.y = heightAt(camera.position.x, camera.position.z) + EYE_HEIGHT;
     }
