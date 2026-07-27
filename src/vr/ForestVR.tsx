@@ -236,7 +236,8 @@ export default function ForestVR() {
           look.
           <br />
           <strong>Tips:</strong> keep food level up to run faster; stop in
-          water (stream or ponds) to drink and refill.
+          water (stream or ponds) to drink and refill; teal animals are
+          bragging they caught you.
         </div>
       )}
 
