@@ -34,7 +34,27 @@ export const tagState = {
   /** Wall-clock ms of the last player<->animal tag swap. Prevents ping-pong
    *  when the two are still touching on the frame after a catch. */
   lastSwapAt: 0,
+  /** Wall-clock ms when the player last became not-"it"; null while player is "it". */
+  safeSince: null as number | null,
+  /** Highest safe streak this life, in ms. Reset on resetSurvival. */
+  highestSafeMs: 0,
 };
+
+/** Current safe streak in ms (0 when player is "it"). */
+export function currentSafeMs() {
+  return tagState.safeSince == null ? 0 : performance.now() - tagState.safeSince;
+}
+function bankSafeStreak() {
+  if (tagState.safeSince != null) {
+    const elapsed = performance.now() - tagState.safeSince;
+    if (elapsed > tagState.highestSafeMs) tagState.highestSafeMs = elapsed;
+    tagState.safeSince = null;
+  }
+}
+export function resetSafeStreak() {
+  tagState.safeSince = null;
+  tagState.highestSafeMs = 0;
+}
 
 /** Seconds of immunity after any tag swap. */
 export const TAG_COOLDOWN_SECONDS = 1.2;
@@ -90,6 +110,7 @@ export function playerCaught() {
   tagState.itIds.clear();
   tagState.itSince.clear();
   tagState.lastSwapAt = performance.now();
+  bankSafeStreak();
   tagState.version++;
 }
 
@@ -101,6 +122,7 @@ export function playerCaughtAnimal(id: number) {
   tagState.itIds.add(id);
   tagState.itSince.set(id, performance.now());
   tagState.lastSwapAt = performance.now();
+  tagState.safeSince = performance.now();
   tagState.version++;
 }
 

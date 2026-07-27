@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
 import { survivalState, eatFromBackpack, resetSurvival, MAX_STAT } from "./survivalState";
+import { tagState, currentSafeMs } from "./tagState";
+
+function fmtTime(ms: number) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
 
 export function SurvivalHUD() {
   const [, tick] = useState(0);
@@ -97,6 +105,20 @@ export function SurvivalHUD() {
           >
             Eat 1
           </button>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: "#fff",
+            fontFamily: "sans-serif",
+            fontSize: 12,
+          }}
+        >
+          <span style={{ width: 46 }}>⏱️</span>
+          <span style={{ flex: 1 }}>Safe: {fmtTime(currentSafeMs())}</span>
+          <span style={{ color: "#ffd23f" }}>Best: {fmtTime(Math.max(tagState.highestSafeMs, currentSafeMs()))}</span>
         </div>
       </div>
 
