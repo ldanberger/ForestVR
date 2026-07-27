@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { heightAt } from "./useHeightAt";
+import { STREAM_WATER_Y } from "./useHeightAt";
 
 // Simple value noise for procedural textures
 function hash(x: number, y: number) {
@@ -66,32 +66,12 @@ export function Stream() {
   // Riverbank foam strip using a second thin plane could be added later.
 
   const STREAM_LEN = 240;
-  const WATER_DEPTH = 0.35; // meters below the bank
-
-  // Build a plane whose vertices follow the terrain valley in world Y.
-  function buildStreamGeo(width: number, segX: number) {
-    const g = new THREE.PlaneGeometry(width, STREAM_LEN, segX, 240);
-    const pos = g.attributes.position as THREE.BufferAttribute;
-    for (let i = 0; i < pos.count; i++) {
-      // Local y after rotation(-PI/2 about X) maps to world -z, so worldZ = -localY.
-      const localY = pos.getY(i);
-      const worldZ = -localY;
-      const bankY = heightAt(0, worldZ);
-      // Displace local z (which becomes world y) to seat water below the bank.
-      pos.setZ(i, bankY - WATER_DEPTH);
-    }
-    pos.needsUpdate = true;
-    g.computeVertexNormals();
-    return g;
-  }
 
   const waterGeo = useMemo(() => {
-    const g = buildStreamGeo(3, 12);
+    const g = new THREE.PlaneGeometry(3, STREAM_LEN, 12, 240);
     basePositions.current = new Float32Array(g.attributes.position.array as Float32Array);
     return g;
   }, []);
-  const rippleGeo = useMemo(() => buildStreamGeo(3, 12), []);
-  const bankGeo = useMemo(() => buildStreamGeo(3.6, 6), []);
 
   useFrame((state, dt) => {
     normalA.offset.y -= dt * 0.22;
@@ -99,8 +79,6 @@ export function Stream() {
     normalB.offset.y -= dt * 0.35;
     normalB.offset.x -= dt * 0.015;
 
-    // Gentle wave displacement on the water surface, added on top of the
-    // baked-in terrain-following Z from basePositions.
     const g = geomRef.current;
     const base = basePositions.current;
     if (g && base) {
@@ -109,12 +87,11 @@ export function Stream() {
       for (let i = 0; i < pos.count; i++) {
         const x = base[i * 3];
         const y = base[i * 3 + 1];
-        const baseZ = base[i * 3 + 2];
         const wave =
           Math.sin(y * 0.6 + t * 1.4) * 0.04 +
           Math.sin(x * 2.1 + y * 0.3 + t * 2.2) * 0.025 +
           Math.cos(y * 1.3 - t * 1.1) * 0.02;
-        pos.setZ(i, baseZ + wave);
+        pos.setZ(i, wave);
       }
       pos.needsUpdate = true;
       g.computeVertexNormals();
@@ -122,7 +99,7 @@ export function Stream() {
   });
 
   return (
-    <group>
+    <group position={[0, STREAM_WATER_Y, 0]}>
       {/* Water */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <primitive object={waterGeo} ref={geomRef} attach="geometry" />
@@ -142,9 +119,9 @@ export function Stream() {
           envMapIntensity={1.6}
         />
       </mesh>
-      {/* Secondary ripple layer, nudged just above the water */}
+      {/* Secondary ripple layer */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <primitive object={rippleGeo} attach="geometry" />
+        <planeGeometry args={[3, STREAM_LEN]} />
         <meshStandardMaterial
           color="#78a8c0"
           transparent
@@ -156,10 +133,10 @@ export function Stream() {
           depthWrite={false}
         />
       </mesh>
-      {/* Wet bank strip, seated just below the water surface */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
-        <primitive object={bankGeo} attach="geometry" />
-        <meshStandardMaterial color="#2a1d12" roughness={1} transparent opacity={0.55} depthWrite={false} />
+      {/* Wet bank strip */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+        <planeGeometry args={[4.2, STREAM_LEN]} />
+        <meshStandardMaterial color="#2a1d12" roughness={1} transparent opacity={0.65} depthWrite={false} />
       </mesh>
     </group>
   );
