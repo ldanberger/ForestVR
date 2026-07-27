@@ -7,7 +7,7 @@ import { tagState } from "./tagState";
 const MAP_WORLD = 220; // covers -110..110
 const MAP_PX = 180;
 const REVEAL_RADIUS_WORLD = 14;
-const APP_VERSION = "0.37.0";
+const APP_VERSION = "0.38.0";
 
 function rng(seed: number) {
   let s = seed >>> 0;
@@ -136,6 +136,21 @@ export function Minimap() {
           ctx.lineWidth = 0.8;
           ctx.beginPath();
           ctx.arc(mx, my, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // All non-it animals shown as small species-colored dots
+        for (const critter of tagState.critters) {
+          if (tagState.itIds.has(critter.id)) continue;
+          const mx = worldToPx(critter.pos.x);
+          const my = worldToPx(critter.pos.z);
+          ctx.fillStyle =
+            (critter as unknown as { species?: string }).species === "fox" ? "#e2691f" : "#f2ead6";
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.arc(mx, my, 1.8, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
         }
