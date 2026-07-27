@@ -44,7 +44,7 @@ type Critter = {
   caughtPlayer: boolean;
 };
 
-const CAUGHT_BLUE = new THREE.Color("#1e73ff");
+const CAUGHT_TEAL = new THREE.Color("#00e5c8");
 
 function tintCaught(child: THREE.Object3D) {
   child.traverse((obj) => {
@@ -53,10 +53,10 @@ function tintCaught(child: THREE.Object3D) {
     const mat = mesh.material as THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[] | undefined;
     if (!mat) return;
     const apply = (m: THREE.MeshStandardMaterial) => {
-      if ((m as unknown as { __caughtBlue?: boolean }).__caughtBlue) return;
-      if (m.color) m.color.copy(CAUGHT_BLUE);
-      if (m.emissive) m.emissive.setRGB(0.05, 0.15, 0.4);
-      (m as unknown as { __caughtBlue?: boolean }).__caughtBlue = true;
+      if ((m as unknown as { __caughtTeal?: boolean }).__caughtTeal) return;
+      if (m.color) m.color.copy(CAUGHT_TEAL);
+      if (m.emissive) m.emissive.setRGB(0.0, 0.35, 0.3);
+      (m as unknown as { __caughtTeal?: boolean }).__caughtTeal = true;
     };
     if (Array.isArray(mat)) mat.forEach(apply);
     else apply(mat);
