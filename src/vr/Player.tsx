@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { XROrigin, useXRInputSourceState, useXR } from "@react-three/xr";
 import * as THREE from "three";
-import { heightAt } from "./useHeightAt";
+import { heightAt, PLAYABLE_HALF_EXTENT, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { playerState } from "./playerState";
 import {
   survivalState,
@@ -11,7 +11,6 @@ import {
   WATER_GAIN_PER_S,
   MAX_STAT,
 } from "./survivalState";
-import { STREAM_HALF_WIDTH } from "./useHeightAt";
 import { uiState, toggleInstructions } from "./uiState";
 
 const EYE_HEIGHT = 1.6;
@@ -26,6 +25,12 @@ function currentMoveSpeed() {
   if (f < 25) return MOVE_SPEED_SLOW;
   return MOVE_SPEED_NORMAL;
 }
+
+function clampToPlayableWorld(pos: { x: number; z: number }) {
+  pos.x = THREE.MathUtils.clamp(pos.x, -PLAYABLE_HALF_EXTENT, PLAYABLE_HALF_EXTENT);
+  pos.z = THREE.MathUtils.clamp(pos.z, -PLAYABLE_HALF_EXTENT, PLAYABLE_HALF_EXTENT);
+}
+
 const SNAP_TURN_DEG = 30;
 
 const keys: Record<string, boolean> = {};
@@ -142,6 +147,7 @@ export function Player() {
         snapCooldown.current = 0.3;
       }
 
+      clampToPlayableWorld(rig.position);
       rig.position.y = heightAt(rig.position.x, rig.position.z);
     } else {
       // Desktop / mobile: move the actual camera
@@ -169,6 +175,7 @@ export function Player() {
         camera.position.x += mv.x * currentMoveSpeed() * dt;
         camera.position.z += mv.z * currentMoveSpeed() * dt;
       }
+      clampToPlayableWorld(camera.position);
       camera.position.y = heightAt(camera.position.x, camera.position.z) + EYE_HEIGHT;
     }
 

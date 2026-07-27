@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
+import { heightAt, PLAYABLE_HALF_EXTENT, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { resolveObstacleCollision, steerAroundObstacles } from "./obstacles";
 import { survivalState, ANIMAL_EAT_RADIUS } from "./survivalState";
 import { playerState } from "./playerState";
@@ -63,8 +63,7 @@ function tintCaught(child: THREE.Object3D) {
   });
 }
 
-const WORLD_LIMIT = 55;
-const IT_WORLD_LIMIT = 58;
+const WORLD_LIMIT = PLAYABLE_HALF_EXTENT;
 
 function angleDelta(target: number, current: number) {
   return Math.atan2(Math.sin(target - current), Math.cos(target - current));
@@ -275,10 +274,10 @@ function useWander(
       if (isIt) {
         // "It" animals chase the player wherever they roam — don't flip their
         // heading at the world edge, just clamp position so they can't leave.
-        if (c.pos.x > IT_WORLD_LIMIT) c.pos.x = IT_WORLD_LIMIT;
-        else if (c.pos.x < -IT_WORLD_LIMIT) c.pos.x = -IT_WORLD_LIMIT;
-        if (c.pos.z > IT_WORLD_LIMIT) c.pos.z = IT_WORLD_LIMIT;
-        else if (c.pos.z < -IT_WORLD_LIMIT) c.pos.z = -IT_WORLD_LIMIT;
+        if (c.pos.x > WORLD_LIMIT) c.pos.x = WORLD_LIMIT;
+        else if (c.pos.x < -WORLD_LIMIT) c.pos.x = -WORLD_LIMIT;
+        if (c.pos.z > WORLD_LIMIT) c.pos.z = WORLD_LIMIT;
+        else if (c.pos.z < -WORLD_LIMIT) c.pos.z = -WORLD_LIMIT;
       } else {
         steerOutOfRestrictedArea(c, speed, dt);
       }

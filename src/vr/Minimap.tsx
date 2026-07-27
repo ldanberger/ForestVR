@@ -7,7 +7,7 @@ import { tagState } from "./tagState";
 const MAP_WORLD = 220; // covers -110..110
 const MAP_PX = 180;
 const REVEAL_RADIUS_WORLD = 14;
-const APP_VERSION = "0.40.0";
+const APP_VERSION = "0.41.0";
 
 function rng(seed: number) {
   let s = seed >>> 0;
