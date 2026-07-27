@@ -110,6 +110,7 @@ export function playerCaught() {
   tagState.itIds.clear();
   tagState.itSince.clear();
   tagState.lastSwapAt = performance.now();
+  bankSafeStreak();
   tagState.version++;
 }
 
@@ -121,6 +122,7 @@ export function playerCaughtAnimal(id: number) {
   tagState.itIds.add(id);
   tagState.itSince.set(id, performance.now());
   tagState.lastSwapAt = performance.now();
+  tagState.safeSince = performance.now();
   tagState.version++;
 }
 
