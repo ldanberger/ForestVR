@@ -140,9 +140,18 @@ export function Minimap() {
           ctx.stroke();
         }
 
+        // Only show animal dots inside explored (revealed) areas
+        const isExplored = (wx: number, wz: number) => {
+          const px = Math.round(worldToPx(wx));
+          const py = Math.round(worldToPx(wz));
+          if (px < 0 || py < 0 || px >= MAP_PX || py >= MAP_PX) return false;
+          return mask[py * MAP_PX + px] >= 200;
+        };
+
         // All non-it animals shown as small species-colored dots
         for (const critter of tagState.critters) {
           if (tagState.itIds.has(critter.id)) continue;
+          if (!isExplored(critter.pos.x, critter.pos.z)) continue;
           const mx = worldToPx(critter.pos.x);
           const my = worldToPx(critter.pos.z);
           ctx.fillStyle =
@@ -159,6 +168,7 @@ export function Minimap() {
         const blink = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
         for (const critter of tagState.critters) {
           if (!tagState.itIds.has(critter.id)) continue;
+          if (!isExplored(critter.pos.x, critter.pos.z)) continue;
           const mx = worldToPx(critter.pos.x);
           const my = worldToPx(critter.pos.z);
           ctx.fillStyle = `rgba(255,40,40,${0.15 + 0.4 * blink})`;
