@@ -1,19 +1,8 @@
-## Changes to `src/vr/Animals.tsx`
+Change the permanent post-catch tint in `src/vr/Animals.tsx` from blue to bright teal.
 
-1. **Remove the hard-guarantee lunge block** (~line 289).
-   - Delete the `itNoCloseT` accumulator, forced heading override, extra lunge step, and its post-lunge distance re-check / `playerCaught()` call.
-   - Keep only the steering-based catch (distance check inside the normal chase branch) as the single catch pathway.
+- Update `CAUGHT_BLUE` constant (rename to `CAUGHT_TEAL`) to `#00e5c8` (bright teal).
+- Update the emissive tint in `tintCaught` to a matching teal glow (e.g. `setRGB(0.0, 0.35, 0.3)`).
+- Rename the internal material guard flag `__caughtBlue` → `__caughtTeal` so existing sessions re-tint cleanly.
+- Bump `APP_VERSION` in `src/vr/Minimap.tsx` to `0.36.0`.
 
-2. **Mark the catching animal blue permanently.**
-   - Add a `caughtPlayer: boolean` flag to each critter's state (default `false`).
-   - When the steering catch fires `playerCaught()`, also set `c.caughtPlayer = true` on that critter.
-   - In the render/material step, if `c.caughtPlayer` is true, override the mesh color to blue for the rest of the session (takes precedence over the red "it" tint and normal species color).
-   - Persist across future tag swaps — the flag is never cleared, so once blue, always blue.
-
-3. **Minimap** (`src/vr/Minimap.tsx`): bump `APP_VERSION` to `0.35.0`.
-
-## Notes
-
-- No changes to `tagState.ts`, catch radius, freeze, cooldown, or infection logic.
-- The 5-second celebration jump stays as-is.
-- Multiple animals can end up blue over a long session (each new catcher joins the blue set).
+No changes to catch logic, celebration, or game flow.
