@@ -80,7 +80,7 @@ function steerOutOfRestrictedArea(c: Critter, speed: number, dt: number) {
   let steerX = 0;
   let steerZ = 0;
 
-  if (Math.abs(c.pos.x) < streamLimit) {
+  if (Math.abs(c.pos.x) < streamLimit && !onBridge(c.pos.z)) {
     const side = c.pos.x >= 0 ? 1 : -1;
     c.pos.x = side * streamLimit;
     steerX += side;
@@ -287,9 +287,16 @@ function useWander(
         if (isIt) c.heading = Math.atan2(pz - c.pos.z, px - c.pos.x);
         else c.heading += (Math.random() - 0.5) * 1.2;
       }
-      // Water is impassable: keep every animal on its birth bank.
+      // Water is impassable except at the bridge deck: keep every animal on its
+      // current bank unless they're crossing the bridge, and update bankSide
+      // once they've reached the far side.
       const bank = STREAM_HALF_WIDTH + agentR;
-      if (c.bankSide * c.pos.x < bank) {
+      if (onBridge(c.pos.z)) {
+        // Free to cross; sync bankSide to whichever side they've stepped onto.
+        if (Math.abs(c.pos.x) > bank) {
+          c.bankSide = c.pos.x >= 0 ? 1 : -1;
+        }
+      } else if (c.bankSide * c.pos.x < bank) {
         c.pos.x = c.bankSide * bank;
         // If heading points across the stream, turn to run along it instead.
         if (c.bankSide * Math.cos(c.heading) < 0) {
