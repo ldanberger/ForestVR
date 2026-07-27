@@ -69,6 +69,27 @@ export function Bridge() {
           <meshStandardMaterial color={railBrown} roughness={0.9} />
         </mesh>
       ))}
+      {/* Sloped earthen ramps on each bank so animals can walk up and over. */}
+      {[-1, 1].map((s) => {
+        const rampLen = 4.5;
+        const angle = 0.32; // ~18° incline
+        // Top of ramp meets the deck edge; far end slopes down into the bank.
+        const cx = s * (BRIDGE_HALF_SPAN + (rampLen / 2) * Math.cos(angle));
+        const cy = deckY - (rampLen / 2) * Math.sin(angle);
+        return (
+          <mesh
+            key={s}
+            position={[cx, cy, 0]}
+            rotation={[0, 0, s * angle]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[rampLen, 0.18, BRIDGE_HALF_LEN * 2]} />
+            <meshStandardMaterial color={plankBrown} roughness={0.95} metalness={0.02} />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
+
