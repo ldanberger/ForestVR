@@ -140,6 +140,21 @@ export function Minimap() {
           ctx.stroke();
         }
 
+        // All non-it animals shown as small species-colored dots
+        for (const critter of tagState.critters) {
+          if (tagState.itIds.has(critter.id)) continue;
+          const mx = worldToPx(critter.pos.x);
+          const my = worldToPx(critter.pos.z);
+          ctx.fillStyle =
+            (critter as unknown as { species?: string }).species === "fox" ? "#e2691f" : "#f2ead6";
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.arc(mx, my, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
         // "It" animals shown as red dots with a blinking glow
         const blink = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
         for (const critter of tagState.critters) {
