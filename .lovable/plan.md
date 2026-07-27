@@ -1,14 +1,52 @@
-Fix the phantom player-catch that happens when a stuck "it" animal is killed by the overlap-timeout.
+## Fix: invisible vertical/horizontal line where "it" animals stop chasing
 
-In `src/vr/Animals.tsx`, the animal-animal separation block currently kills `c` (the current critter) after 1.5s of continuous overlap. Change it so that when overlap timeout fires:
+### Confirmed cause
 
-- If the current critter is "it" (in `tagState.itIds`) and the other overlapping critter is not, kill the non-it one instead (via `killAnimal(other.id)` and mark it dead in the local critters array if we can find it), and reset `c.overlapT` to 0.
-- If neither or both are "it", keep current behavior (kill `c`).
+This is **not** the stream/bank issue.
 
-Because the local `critters` array is per-species (rabbits vs foxes) and `tagState.critters` is the union, when we need to hide the killed sibling we look it up in the current group's list; if not found there, `killAnimal(other.id)` alone is enough (the other species' render loop will observe `dead` via its own overlap tracking? No — we should also flag it). Simplest reliable approach: call `killAnimal(other.id)` and additionally set `other.dead = true` on the tag-state critter reference (widen the shared type by casting) so any species group that owns it hides its mesh next frame.
+The current code has an animal-only square boundary:
 
-Actually, `dead` is a field on the local `Critter` in `Animals.tsx`, not on `tagState.critters` entries. The `tagState.critters` entries only carry `{ id, pos, species }`. Hiding the mesh needs the local `dead` flag. To keep this simple and correct: when the "it" critter would die, instead swap — mark `c.dead = false` (unchanged), set `c.overlapT = 0`, and find the non-it partner in the current group's local `critters` array; if present, set `partner.dead = true` and call `killAnimal(partner.id)`. If the partner is in the other species group, fall back to killing `c` as today (rare enough — cross-species overlaps still resolve, just not perfectly).
+- `src/vr/Animals.tsx`
+  - non-it animals are limited to `WORLD_LIMIT = 55`
+  - it animals are limited to `IT_WORLD_LIMIT = 58`
+  - this clamp applies on both `x` and `z`, so it creates both vertical and horizontal invisible lines
+- `src/vr/Player.tsx`
+  - the player has no matching world clamp, so the player can walk outside the animal-reachable square
 
-Also bump `APP_VERSION` in `src/vr/Minimap.tsx` to `0.40.0`.
+That matches the behavior you described:
 
-No changes to freeze/celebration timers or catch radii.
+1. Player moves outside the animal square.
+2. It animals chase until they hit the invisible `x/z = ±58` boundary.
+3. They cannot approach farther, so they appear to stay away in a clear field.
+4. When the player crosses back over that invisible boundary, the animals can reach/catch the player.
+5. `playerCaught()` clears all it animals, so they become non-it and move away because the player is it again.
+
+### Plan
+
+1. Create one shared playable-world boundary value for both player and animals.
+   - Use a larger boundary matching the visible/minimap terrain, around `105` world units instead of `55/58`.
+   - This removes the small invisible animal-only square inside the forest.
+
+2. Update `src/vr/Animals.tsx`.
+   - Replace `WORLD_LIMIT = 55` and `IT_WORLD_LIMIT = 58` with the shared boundary.
+   - Keep the stream/bank logic unchanged so animals still cannot go through, under, over, or across water.
+   - Keep tree/rock collision unchanged.
+
+3. Update `src/vr/Player.tsx`.
+   - Clamp player movement to the same shared playable boundary.
+   - This prevents the player from walking outside the area animals can reach.
+   - Do **not** block the player from entering the stream; water refill behavior remains unchanged.
+
+4. Optional safety check inside the animal update loop.
+   - If an it animal is chasing and far from the player, make sure its heading remains pointed toward the player unless water/tree/rock collision changes it.
+   - No teleporting.
+   - No stream crossing.
+
+5. Update `src/vr/Minimap.tsx` version to `0.41.0`.
+
+### Behavior after the fix
+
+- It animals will no longer stop at the old hidden `±58` vertical/horizontal lines.
+- Animals still cannot cross the stream.
+- Player cannot escape outside the animal-reachable world.
+- Catch/reset behavior remains the same once an it animal truly reaches the player.

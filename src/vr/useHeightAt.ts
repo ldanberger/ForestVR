@@ -25,3 +25,4 @@ export function heightAt(x: number, z: number): number {
 }
 
 export const STREAM_HALF_WIDTH = 1.6;
+export const PLAYABLE_HALF_EXTENT = 105;
