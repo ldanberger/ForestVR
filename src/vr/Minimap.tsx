@@ -8,7 +8,7 @@ import { PONDS } from "./ponds";
 const MAP_WORLD = 220; // covers -110..110
 const MAP_PX = 180;
 const REVEAL_RADIUS_WORLD = 14;
-const APP_VERSION = "0.42.0";
+const APP_VERSION = "0.43.0";
 
 function rng(seed: number) {
   let s = seed >>> 0;
