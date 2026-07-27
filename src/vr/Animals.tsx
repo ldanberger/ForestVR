@@ -305,6 +305,8 @@ function useWander(
       // target). Push both apart along their delta.
       const myR = (tagState.itIds.has(c.id) ? 2 : 1) * 0.45;
       let overlappedThisFrame = false;
+      let nonItPartnerId = -1;
+      let anyPartnerId = -1;
       for (const other of tagState.critters) {
         if (other.id === c.id) continue;
         const dx = c.pos.x - other.pos.x;
@@ -314,6 +316,8 @@ function useWander(
         const d2 = dx * dx + dz * dz;
         if (d2 > 0 && d2 < minD * minD) {
           overlappedThisFrame = true;
+          anyPartnerId = other.id;
+          if (!tagState.itIds.has(other.id)) nonItPartnerId = other.id;
           const d = Math.sqrt(d2);
           const push = (minD - d) * 0.5;
           const nx = dx / d;
@@ -326,14 +330,29 @@ function useWander(
       }
       if (overlappedThisFrame) {
         c.overlapT += dt;
-        // Stuck together for too long: kill this one to unstick the pair.
-        // Only one dies per collision because the survivor's timer resets
-        // once nobody is overlapping it anymore.
+        // Stuck together for too long: kill one to unstick the pair.
+        // If "c" is "it", prefer killing a non-it partner so we don't
+        // auto-tag the player via killAnimal's it-death handler.
         if (c.overlapT > 1.5) {
-          c.dead = true;
-          killAnimal(c.id);
-          if (child) child.visible = false;
-          return;
+          const cIsIt = tagState.itIds.has(c.id);
+          const victimId = cIsIt && nonItPartnerId !== -1 ? nonItPartnerId : cIsIt ? -1 : c.id;
+          if (victimId === c.id) {
+            c.dead = true;
+            killAnimal(c.id);
+            if (child) child.visible = false;
+            return;
+          }
+          if (victimId !== -1) {
+            const partner = critters.find((p) => p.id === victimId);
+            if (partner) partner.dead = true;
+            killAnimal(victimId);
+            c.overlapT = 0;
+          } else {
+            // Both are "it" and no non-it partner to sacrifice; just reset
+            // the timer and let the separation push resolve it.
+            c.overlapT = 0;
+            void anyPartnerId;
+          }
         }
       } else {
         c.overlapT = 0;
