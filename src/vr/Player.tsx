@@ -3,6 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { XROrigin, useXRInputSourceState, useXR } from "@react-three/xr";
 import * as THREE from "three";
 import { heightAt, PLAYABLE_HALF_EXTENT, STREAM_HALF_WIDTH } from "./useHeightAt";
+import { nearPondWater } from "./ponds";
 import { playerState } from "./playerState";
 import {
   survivalState,
@@ -197,7 +198,10 @@ export function Player() {
       survivalState.water = Math.max(0, survivalState.water - moved * WATER_DRAIN_PER_M);
     }
     // Standing in / at the stream refills water without removing it from the map.
-    if (Math.abs(playerState.pos.x) < STREAM_HALF_WIDTH + 0.6) {
+    if (
+      Math.abs(playerState.pos.x) < STREAM_HALF_WIDTH + 0.6 ||
+      nearPondWater(playerState.pos.x, playerState.pos.z, 0.8)
+    ) {
       survivalState.water = Math.min(MAX_STAT, survivalState.water + WATER_GAIN_PER_S * dt);
     }
     if (survivalState.food <= 0 || survivalState.water <= 0) {

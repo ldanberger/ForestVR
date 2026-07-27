@@ -498,7 +498,7 @@ function RabbitMesh() {
 }
 
 export function Rabbits() {
-  const critters = useMemo(() => makeCritters(20, 4242, 1.2, "rabbit"), []);
+  const critters = useMemo(() => makeCritters(40, 4242, 1.2, "rabbit"), []);
   const groupRef = useRef<THREE.Group>(null);
   useEffect(() => {
     return registerCrittersForSpecies(
@@ -620,7 +620,7 @@ function FoxMesh() {
 }
 
 export function Foxes() {
-  const critters = useMemo(() => makeCritters(10, 7373, 1.9, "fox"), []);
+  const critters = useMemo(() => makeCritters(20, 7373, 1.9, "fox"), []);
   const groupRef = useRef<THREE.Group>(null);
   useEffect(() => {
     return registerCrittersForSpecies(
