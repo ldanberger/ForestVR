@@ -1,52 +1,35 @@
-## Fix: invisible vertical/horizontal line where "it" animals stop chasing
+## Goal
+Place a visible wooden bridge across the central stream. Animals can walk across the stream within the bridge's footprint; outside it, water remains impassable.
 
-### Confirmed cause
+## Approach
 
-This is **not** the stream/bank issue.
+### 1. Bridge geometry — new `src/vr/Bridge.tsx`
+- Export `BRIDGE_Z = 0` (center along stream length) and `BRIDGE_HALF_LEN = 3` (6 m wide crossing along z-axis).
+- Render a group at `[0, terrainHeight(0,0) ~ -0.2, BRIDGE_Z]`:
+  - Deck: `boxGeometry` ~ 5 m (x, spans stream + banks) × 0.2 m × 6 m (z), warm plank-brown `MeshStandardMaterial` (roughness 0.85).
+  - Two rails: thin boxes on ±z edges, 0.1 × 0.9 × 6, plus 4 short posts at corners.
+  - Slight subdivisions across x to fake plank lines via repeated small boxes (optional, keep simple).
+- Cast/receive shadows.
 
-The current code has an animal-only square boundary:
+### 2. Integrate into scene
+- `src/vr/ForestVR.tsx`: import and render `<Bridge />` alongside `<Stream />`.
 
-- `src/vr/Animals.tsx`
-  - non-it animals are limited to `WORLD_LIMIT = 55`
-  - it animals are limited to `IT_WORLD_LIMIT = 58`
-  - this clamp applies on both `x` and `z`, so it creates both vertical and horizontal invisible lines
-- `src/vr/Player.tsx`
-  - the player has no matching world clamp, so the player can walk outside the animal-reachable square
+### 3. Let animals cross on the bridge — `src/vr/obstacles.ts`
+- Add helper `onBridge(z: number)` = `Math.abs(z - BRIDGE_Z) <= BRIDGE_HALF_LEN`.
+- In `resolveObstacles` and `steerAroundObstacles`, skip the "water strip along x=0" clamp/steer when `onBridge(pos.z)`.
 
-That matches the behavior you described:
+### 4. Let animal wander loop cross too — `src/vr/Animals.tsx`
+- In the `bankSide` clamp block (~line 290), skip the push-out when `Math.abs(c.pos.z - BRIDGE_Z) <= BRIDGE_HALF_LEN`. Also once an animal reaches the far bank via the bridge, update `c.bankSide = c.pos.x >= 0 ? 1 : -1` so it isn't yanked back on the next tick.
+- In the early stream-limit block (~line 79) that clamps `pos.x`, apply the same bridge exemption.
 
-1. Player moves outside the animal square.
-2. It animals chase until they hit the invisible `x/z = ±58` boundary.
-3. They cannot approach farther, so they appear to stay away in a clear field.
-4. When the player crosses back over that invisible boundary, the animals can reach/catch the player.
-5. `playerCaught()` clears all it animals, so they become non-it and move away because the player is it again.
+### 5. Keep spawn exclusion zones intact
+- Carrots/Scatter/Animals spawn exclusions around the stream stay unchanged so nothing spawns on the bridge deck itself.
 
-### Plan
+### 6. Minimap
+- `src/vr/Minimap.tsx`: draw a small brown rectangle at world (0, BRIDGE_Z) sized to bridge footprint, drawn above the stream line but under animal dots.
+- Bump `APP_VERSION` to `0.44.0`.
 
-1. Create one shared playable-world boundary value for both player and animals.
-   - Use a larger boundary matching the visible/minimap terrain, around `105` world units instead of `55/58`.
-   - This removes the small invisible animal-only square inside the forest.
-
-2. Update `src/vr/Animals.tsx`.
-   - Replace `WORLD_LIMIT = 55` and `IT_WORLD_LIMIT = 58` with the shared boundary.
-   - Keep the stream/bank logic unchanged so animals still cannot go through, under, over, or across water.
-   - Keep tree/rock collision unchanged.
-
-3. Update `src/vr/Player.tsx`.
-   - Clamp player movement to the same shared playable boundary.
-   - This prevents the player from walking outside the area animals can reach.
-   - Do **not** block the player from entering the stream; water refill behavior remains unchanged.
-
-4. Optional safety check inside the animal update loop.
-   - If an it animal is chasing and far from the player, make sure its heading remains pointed toward the player unless water/tree/rock collision changes it.
-   - No teleporting.
-   - No stream crossing.
-
-5. Update `src/vr/Minimap.tsx` version to `0.41.0`.
-
-### Behavior after the fix
-
-- It animals will no longer stop at the old hidden `±58` vertical/horizontal lines.
-- Animals still cannot cross the stream.
-- Player cannot escape outside the animal-reachable world.
-- Catch/reset behavior remains the same once an it animal truly reaches the player.
+## Technical notes
+- Constants live in the new `Bridge.tsx` and are imported where needed (Animals, obstacles, Minimap).
+- No physics library — the deck is purely visual; the player already walks freely (water refill trigger only fires when actually within stream x-band, which the bridge overlaps — acceptable, matches "standing at stream" behavior).
+- No changes to survival, tag, or player speed logic.

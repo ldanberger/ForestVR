@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { Terrain } from "./Terrain";
 import { Stream } from "./Stream";
 import { Ponds } from "./Ponds";
+import { Bridge } from "./Bridge";
 import { Trees, Rocks, GrassBlades } from "./Scatter";
 import { Rabbits, Foxes } from "./Animals";
 import { Player } from "./Player";
@@ -330,6 +331,7 @@ export default function ForestVR() {
           <Terrain />
           <Stream />
           <Ponds />
+          <Bridge />
           <Trees />
           <GrassBlades />
           <Rocks />
