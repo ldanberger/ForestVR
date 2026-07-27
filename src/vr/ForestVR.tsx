@@ -5,6 +5,7 @@ import { XR, createXRStore, useXR } from "@react-three/xr";
 import * as THREE from "three";
 import { Terrain } from "./Terrain";
 import { Stream } from "./Stream";
+import { Ponds } from "./Ponds";
 import { Trees, Rocks, GrassBlades } from "./Scatter";
 import { Rabbits, Foxes } from "./Animals";
 import { Player } from "./Player";
@@ -328,6 +329,7 @@ export default function ForestVR() {
           <Atmosphere vrSafe={vrSessionActive} />
           <Terrain />
           <Stream />
+          <Ponds />
           <Trees />
           <GrassBlades />
           <Rocks />

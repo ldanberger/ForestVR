@@ -3,11 +3,12 @@ import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { playerState } from "./playerState";
 import { survivalState } from "./survivalState";
 import { tagState } from "./tagState";
+import { PONDS } from "./ponds";
 
 const MAP_WORLD = 220; // covers -110..110
 const MAP_PX = 180;
 const REVEAL_RADIUS_WORLD = 14;
-const APP_VERSION = "0.41.0";
+const APP_VERSION = "0.42.0";
 
 function rng(seed: number) {
   let s = seed >>> 0;
@@ -80,6 +81,20 @@ export function Minimap() {
       bctx.beginPath();
       bctx.arc(worldToPx(t.x), worldToPx(t.z), 1.3, 0, Math.PI * 2);
       bctx.fill();
+    }
+
+    // Draw ponds as blue discs with a darker outline
+    for (const p of PONDS) {
+      const px = worldToPx(p.x);
+      const py = worldToPx(p.z);
+      const rpx = (p.r / MAP_WORLD) * MAP_PX;
+      bctx.fillStyle = "#3778a8";
+      bctx.strokeStyle = "#12324a";
+      bctx.lineWidth = 0.8;
+      bctx.beginPath();
+      bctx.arc(px, py, rpx, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.stroke();
     }
 
     baseRef.current = base;

@@ -3,6 +3,7 @@
 // filters) so animals collide with exactly what the player sees.
 
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
+import { PONDS } from "./ponds";
 
 export type Obstacle = { x: number; z: number; r: number };
 
@@ -41,7 +42,9 @@ export function getObstacles(): Obstacle[] {
   if (cached) return cached;
   const trees = scatter(280, 42, { minY: 0.3, maxY: 12, blockRadius: 0.75 });
   const rocks = scatter(120, 7, { minY: -1, maxY: 20, blockRadius: 1.1 });
-  cached = [...trees, ...rocks];
+  // Ponds act as impassable water discs for animals.
+  const ponds: Obstacle[] = PONDS.map((p) => ({ x: p.x, z: p.z, r: p.r + 0.4 }));
+  cached = [...trees, ...rocks, ...ponds];
   return cached;
 }
 
