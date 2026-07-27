@@ -51,4 +51,6 @@ export function resetSurvival() {
     c.foundByPlayer = false;
   }
   survivalState.version++;
+  // Reset tag safe-streak stats for the new life.
+  import("./tagState").then(({ resetSafeStreak }) => resetSafeStreak());
 }
