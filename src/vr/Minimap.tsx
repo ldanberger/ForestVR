@@ -4,11 +4,12 @@ import { playerState } from "./playerState";
 import { survivalState } from "./survivalState";
 import { tagState } from "./tagState";
 import { PONDS } from "./ponds";
+import { BRIDGE_HALF_LEN, BRIDGE_HALF_SPAN, BRIDGE_Z } from "./Bridge";
 
 const MAP_WORLD = 220; // covers -110..110
 const MAP_PX = 180;
 const REVEAL_RADIUS_WORLD = 14;
-const APP_VERSION = "0.43.0";
+const APP_VERSION = "0.44.0";
 
 function rng(seed: number) {
   let s = seed >>> 0;
@@ -95,6 +96,19 @@ export function Minimap() {
       bctx.arc(px, py, rpx, 0, Math.PI * 2);
       bctx.fill();
       bctx.stroke();
+    }
+
+    // Draw the bridge as a brown rectangle spanning the stream
+    {
+      const bx = worldToPx(-BRIDGE_HALF_SPAN);
+      const by = worldToPx(BRIDGE_Z - BRIDGE_HALF_LEN);
+      const bw = (BRIDGE_HALF_SPAN * 2 / MAP_WORLD) * MAP_PX;
+      const bh = (BRIDGE_HALF_LEN * 2 / MAP_WORLD) * MAP_PX;
+      bctx.fillStyle = "#6b4a2b";
+      bctx.strokeStyle = "#2b1a0d";
+      bctx.lineWidth = 0.8;
+      bctx.fillRect(bx, by, bw, bh);
+      bctx.strokeRect(bx, by, bw, bh);
     }
 
     baseRef.current = base;

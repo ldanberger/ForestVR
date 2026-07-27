@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { heightAt, PLAYABLE_HALF_EXTENT, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { resolveObstacleCollision, steerAroundObstacles } from "./obstacles";
+import { onBridge } from "./Bridge";
 import { survivalState, ANIMAL_EAT_RADIUS } from "./survivalState";
 import { playerState } from "./playerState";
 import {
