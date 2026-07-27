@@ -69,26 +69,34 @@ export function Bridge() {
           <meshStandardMaterial color={railBrown} roughness={0.9} />
         </mesh>
       ))}
-      {/* Sloped earthen ramps on each bank so animals can walk up and over. */}
+      {/* Sloped plank ramps on each bank: inner top edge meets the deck,
+          far end slopes down to ground level on the bank. */}
       {[-1, 1].map((s) => {
         const rampLen = 4.5;
-        const angle = 0.32; // ~18° incline
-        // Top of ramp meets the deck edge; far end slopes down into the bank.
-        const cx = s * (BRIDGE_HALF_SPAN + (rampLen / 2) * Math.cos(angle));
-        const cy = deckY - (rampLen / 2) * Math.sin(angle);
+        const drop = 1.5; // vertical fall from deck down to ground
+        const angle = Math.atan2(drop, rampLen);
+        const thickness = 0.18;
+        const half = thickness / 2;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        // Solve so the inner-top corner sits at (s*BRIDGE_HALF_SPAN, deckY).
+        // Rotation applied is z = -s*angle so the outer end tilts downward.
+        const cx = s * (BRIDGE_HALF_SPAN + (rampLen / 2) * cos - half * sin);
+        const cy = deckY - (rampLen / 2) * sin - half * cos;
         return (
           <mesh
             key={s}
             position={[cx, cy, 0]}
-            rotation={[0, 0, s * angle]}
+            rotation={[0, 0, -s * angle]}
             castShadow
             receiveShadow
           >
-            <boxGeometry args={[rampLen, 0.18, BRIDGE_HALF_LEN * 2]} />
+            <boxGeometry args={[rampLen, thickness, BRIDGE_HALF_LEN * 2]} />
             <meshStandardMaterial color={plankBrown} roughness={0.95} metalness={0.02} />
           </mesh>
         );
       })}
+
     </group>
   );
 }
