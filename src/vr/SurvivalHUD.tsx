@@ -106,6 +106,20 @@ export function SurvivalHUD() {
             Eat 1
           </button>
         </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: "#fff",
+            fontFamily: "sans-serif",
+            fontSize: 12,
+          }}
+        >
+          <span style={{ width: 46 }}>⏱️</span>
+          <span style={{ flex: 1 }}>Safe: {fmtTime(currentSafeMs())}</span>
+          <span style={{ color: "#ffd23f" }}>Best: {fmtTime(Math.max(tagState.highestSafeMs, currentSafeMs()))}</span>
+        </div>
       </div>
 
       {gameOver && (
