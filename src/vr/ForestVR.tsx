@@ -234,6 +234,9 @@ export default function ForestVR() {
           <br />
           <strong>iPhone:</strong> left joystick to move, drag right side to
           look.
+          <br />
+          <strong>Tips:</strong> keep food level up to run faster; stop in
+          water (stream or ponds) to drink and refill.
         </div>
       )}
 
