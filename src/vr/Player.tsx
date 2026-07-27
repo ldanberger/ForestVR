@@ -17,9 +17,9 @@ import { uiState, toggleInstructions } from "./uiState";
 const EYE_HEIGHT = 1.6;
 // Speed scales with food: well-fed sprints past animals, starving lags behind.
 // Fastest "it" animal ≈ 6 m/s (fox × 3.2). Tiers picked around that.
-const MOVE_SPEED_FAST = 7;   // food > 75 — faster than every animal
-const MOVE_SPEED_NORMAL = 6; // 25..75  — matches top "it" speed
-const MOVE_SPEED_SLOW = 3;   // food < 25 — slower than "it" animals
+const MOVE_SPEED_FAST = 7.7;   // food > 75 — faster than every animal
+const MOVE_SPEED_NORMAL = 6.6; // 25..75  — matches top "it" speed
+const MOVE_SPEED_SLOW = 3.3;   // food < 25 — slower than "it" animals
 function currentMoveSpeed() {
   const f = survivalState.food;
   if (f > 75) return MOVE_SPEED_FAST;
