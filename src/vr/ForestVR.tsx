@@ -24,12 +24,24 @@ import {
   useUi,
 } from "./uiState";
 
-// Restore the original/default XR startup path. In @react-three/xr v6,
-// bounded-floor is only used when `bounded: true`; the default manager reference
-// space is local-floor, which is what worked before the recent VR experiments.
-// Minimal store — every option we added over the past iterations turned out to
-// be a source of black-screen regressions on Meta Quest. Defaults it is.
-const store = createXRStore();
+// Quest Browser is black-screening as soon as the immersive session starts, so
+// keep the requested WebXR session intentionally plain: no browser-offered
+// session, DOM overlay, layers, anchors, hand tracking, mesh/plane detection,
+// hit tests, or forced refresh-rate changes. Controllers still work.
+const store = createXRStore({
+  offerSession: false,
+  frameRate: false,
+  frameBufferScaling: "low",
+  foveation: 1,
+  anchors: false,
+  handTracking: false,
+  layers: false,
+  meshDetection: false,
+  planeDetection: false,
+  depthSensing: false,
+  hitTest: false,
+  domOverlay: false,
+});
 
 const DESKTOP_DPR: [number, number] = [1, 2];
 
@@ -145,16 +157,64 @@ function Atmosphere({ vrSafe }: { vrSafe: boolean }) {
   );
 }
 
+function QuestBootScene() {
+  const markerRef = useRef<THREE.Group>(null);
+  const camera = useThree((s) => s.camera);
+
+  useFrame(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+    const offset = new THREE.Vector3(0, -0.12, -0.85).applyQuaternion(camera.quaternion);
+    marker.position.copy(camera.position).add(offset);
+    marker.quaternion.copy(camera.quaternion);
+  });
+
+  return (
+    <>
+      <color attach="background" args={["#9ec3e0"]} />
+      <ambientLight intensity={1.1} />
+      <hemisphereLight args={["#dceeff", "#4e7a37", 1.1]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+        <planeGeometry args={[80, 80]} />
+        <meshBasicMaterial color="#4e7a37" toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 1.45, -2.2]}>
+        <boxGeometry args={[0.35, 0.35, 0.35]} />
+        <meshBasicMaterial color="#39ff14" toneMapped={false} />
+      </mesh>
+      <group ref={markerRef} renderOrder={2000}>
+        <mesh renderOrder={2001}>
+          <ringGeometry args={[0.025, 0.04, 32]} />
+          <meshBasicMaterial color="#39ff14" depthTest={false} toneMapped={false} />
+        </mesh>
+      </group>
+    </>
+  );
+}
+
 export default function ForestVR() {
   const ui = useUi();
   const [questBrowser] = useState(() => isQuestBrowser());
   const [vrSessionActive, setVrSessionActive] = useState(false);
+  const [questPreflight, setQuestPreflight] = useState(false);
+  const [questSceneReady, setQuestSceneReady] = useState(false);
   const [webglContextLost, setWebglContextLost] = useState(false);
   const vrSafe = questBrowser || vrSessionActive;
+  const questBootActive = questBrowser && questPreflight && !questSceneReady;
 
   const handleSessionChange = useCallback((active: boolean) => {
     setVrSessionActive(active);
+    if (!active) {
+      setQuestPreflight(false);
+      setQuestSceneReady(false);
+    }
   }, []);
+
+  useEffect(() => {
+    if (!questBrowser || !questPreflight || !vrSessionActive) return;
+    const id = window.setTimeout(() => setQuestSceneReady(true), 3500);
+    return () => window.clearTimeout(id);
+  }, [questBrowser, questPreflight, vrSessionActive]);
 
   // Right-click anywhere toggles the instructions panel.
   useEffect(() => {
@@ -186,8 +246,19 @@ export default function ForestVR() {
           }}
         >
           <button
-            onClick={() => {
-              void enterVRSafely();
+            onClick={async () => {
+              if (questBrowser) {
+                setQuestPreflight(true);
+                setQuestSceneReady(false);
+                await new Promise<void>((resolve) => {
+                  requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+                });
+              }
+              const entered = await enterVRSafely();
+              if (!entered) {
+                setQuestPreflight(false);
+                setQuestSceneReady(false);
+              }
             }}
 
             style={{
@@ -335,41 +406,47 @@ export default function ForestVR() {
         <WebGLContextGuard onLost={() => setWebglContextLost(true)} />
         <XR store={store}>
           <XRSessionSync onSessionChange={handleSessionChange} />
-          <color attach="background" args={["#9ec3e0"]} />
-          <fog attach="fog" args={["#b8d0e2", vrSafe ? 38 : 55, vrSafe ? 135 : 220]} />
+          {questBootActive ? (
+            <QuestBootScene />
+          ) : (
+            <>
+              <color attach="background" args={["#9ec3e0"]} />
+              <fog attach="fog" args={["#b8d0e2", vrSafe ? 38 : 55, vrSafe ? 135 : 220]} />
 
-          <ambientLight intensity={vrSafe ? 0.65 : 0.35} />
-          <hemisphereLight args={["#dceeff", "#3a4a2a", vrSafe ? 0.7 : 0.45]} />
-          <directionalLight
-            position={[40, 55, 25]}
-            intensity={vrSafe ? 1.4 : 2.2}
-            color="#fff2d6"
-            castShadow={!vrSafe}
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-camera-left={-60}
-            shadow-camera-right={60}
-            shadow-camera-top={60}
-            shadow-camera-bottom={-60}
-            shadow-camera-near={0.5}
-            shadow-camera-far={200}
-            shadow-bias={-0.0004}
-            shadow-normalBias={0.04}
-          />
-          <Atmosphere vrSafe={vrSafe} />
-          <Terrain vrSafe={vrSafe} />
-          <Stream vrSafe={vrSafe} />
-          <Ponds vrSafe={vrSafe} />
-          <Bridge />
-          <Trees vrSafe={vrSafe} />
-          {!vrSafe && <GrassBlades />}
-          <Rocks vrSafe={vrSafe} />
-          <Rabbits />
-          <Foxes />
-          <Items />
-          <Carrots />
-          <Player />
-          <VRHud />
+              <ambientLight intensity={vrSafe ? 0.65 : 0.35} />
+              <hemisphereLight args={["#dceeff", "#3a4a2a", vrSafe ? 0.7 : 0.45]} />
+              <directionalLight
+                position={[40, 55, 25]}
+                intensity={vrSafe ? 1.4 : 2.2}
+                color="#fff2d6"
+                castShadow={!vrSafe}
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+                shadow-camera-left={-60}
+                shadow-camera-right={60}
+                shadow-camera-top={60}
+                shadow-camera-bottom={-60}
+                shadow-camera-near={0.5}
+                shadow-camera-far={200}
+                shadow-bias={-0.0004}
+                shadow-normalBias={0.04}
+              />
+              <Atmosphere vrSafe={vrSafe} />
+              <Terrain vrSafe={vrSafe} />
+              <Stream vrSafe={vrSafe} />
+              <Ponds vrSafe={vrSafe} />
+              <Bridge />
+              <Trees vrSafe={vrSafe} />
+              {!vrSafe && <GrassBlades />}
+              <Rocks vrSafe={vrSafe} />
+              <Rabbits />
+              <Foxes />
+              <Items />
+              <Carrots />
+              <Player />
+              <VRHud />
+            </>
+          )}
         </XR>
       </Canvas>
     </div>
