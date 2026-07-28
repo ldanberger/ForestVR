@@ -458,17 +458,17 @@ export default function ForestVR() {
                 shadow-normalBias={0.04}
               />
               <Atmosphere vrSafe={vrSafe} />
-              <Terrain vrSafe={vrSafe} />
-              <Stream vrSafe={vrSafe} />
-              <Ponds vrSafe={vrSafe} />
-              <Bridge />
-              <Trees vrSafe={vrSafe} />
-              {!vrSafe && <GrassBlades />}
-              <Rocks vrSafe={vrSafe} />
-              <Rabbits />
-              <Foxes />
-              <Items />
-              <Carrots />
+              {vrPhase >= 1 && <Terrain vrSafe={vrSafe} />}
+              {vrPhase >= 1 && <Stream vrSafe={vrSafe} />}
+              {vrPhase >= 1 && <Ponds vrSafe={vrSafe} />}
+              {vrPhase >= 1 && <Bridge />}
+              {vrPhase >= 2 && <Trees vrSafe={vrSafe} />}
+              {vrPhase >= 2 && !vrSafe && <GrassBlades />}
+              {vrPhase >= 2 && <Rocks vrSafe={vrSafe} />}
+              {vrPhase >= 3 && <Rabbits vrSafe={vrSafe} />}
+              {vrPhase >= 3 && <Foxes vrSafe={vrSafe} />}
+              {vrPhase >= 4 && <Items />}
+              {vrPhase >= 4 && <Carrots />}
               <Player />
               <VRHud />
             </>
