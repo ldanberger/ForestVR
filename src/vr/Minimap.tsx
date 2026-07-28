@@ -9,7 +9,7 @@ import { BRIDGE_HALF_LEN, BRIDGE_HALF_SPAN, BRIDGE_Z } from "./Bridge";
 const MAP_WORLD = 220; // covers -110..110
 const MAP_PX = 180;
 const REVEAL_RADIUS_WORLD = 14;
-const APP_VERSION = "0.55.0";
+const APP_VERSION = "0.56.0";
 
 function rng(seed: number) {
   let s = seed >>> 0;
