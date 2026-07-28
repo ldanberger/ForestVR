@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Sky, Environment, Cloud, Clouds } from "@react-three/drei";
 import { XR, createXRStore, useXR } from "@react-three/xr";
@@ -24,20 +24,31 @@ import {
   useUi,
 } from "./uiState";
 
-// Explicitly request only `local-floor` (with `local` fallback). The
-// @react-three/xr default requests `bounded-floor`, which needs a configured
-// Quest guardian bounded play area — when it can't be resolved the session
-// starts but renders black. Dropping bounded-floor fixes the black screen on
-// Quest 3.
+// Use the actual @react-three/xr v6 option names. `sessionInit` and
+// `referenceSpace` are ignored by this version, so the previous change still
+// requested the library's full default feature bundle. Quest Browser can enter
+// an opaque session but render black when optional WebXR layers/scene features
+// are enabled, so this starts with the smallest reliable immersive-vr session.
 const store = createXRStore({
-  foveation: 0,
-  offerSession: "immersive-vr",
+  foveation: 1,
+  frameBufferScaling: 0.65,
+  frameRate: false,
+  offerSession: false,
+  enterGrantedSession: false,
+  emulate: false,
   hand: { teleportPointer: true },
-  sessionInit: {
+  anchors: false,
+  bodyTracking: false,
+  depthSensing: false,
+  domOverlay: false,
+  hitTest: false,
+  layers: false,
+  meshDetection: false,
+  planeDetection: false,
+  customSessionInit: {
     requiredFeatures: ["local-floor"],
-    optionalFeatures: ["hand-tracking", "layers"],
+    optionalFeatures: [],
   },
-  referenceSpace: "local-floor",
 } as any);
 
 const DESKTOP_DPR: [number, number] = [1, 2];
@@ -52,7 +63,7 @@ async function enterVRSafely() {
         "WebXR is not available in this browser.\n\n" +
           "On Meta Quest 3: open the Meta Quest Browser and load this page's URL directly (not through Lovable's preview iframe), then tap 'Enter VR'.",
       );
-      return;
+      return false;
     }
     const supported = await (navigator as any).xr?.isSessionSupported?.(
       "immersive-vr",
@@ -62,10 +73,11 @@ async function enterVRSafely() {
         "Immersive VR is not supported here.\n\n" +
           "Open this exact URL inside the Meta Quest Browser on the headset (not the desktop preview, and not inside an iframe).",
       );
-      return;
+      return false;
     }
     await store.enterVR();
     startGame();
+    return true;
   } catch (err) {
     console.error("enterVR failed", err);
     alert(
@@ -73,6 +85,7 @@ async function enterVRSafely() {
         (err instanceof Error ? err.message : String(err)) +
         "\n\nTip: open this page's URL directly in the Meta Quest Browser (top-right 'Open in new tab' from the preview), then press Enter VR.",
     );
+    return false;
   }
 }
 
@@ -151,8 +164,15 @@ function Atmosphere({ vrSafe }: { vrSafe: boolean }) {
 
 export default function ForestVR() {
   const ui = useUi();
+  const [vrLaunchRequested, setVrLaunchRequested] = useState(false);
   const [vrSessionActive, setVrSessionActive] = useState(false);
   const [webglContextLost, setWebglContextLost] = useState(false);
+  const vrSafe = vrLaunchRequested || vrSessionActive;
+
+  const handleSessionChange = useCallback((active: boolean) => {
+    setVrSessionActive(active);
+    setVrLaunchRequested(active);
+  }, []);
 
   // Right-click anywhere toggles the instructions panel.
   useEffect(() => {
@@ -185,7 +205,10 @@ export default function ForestVR() {
         >
           <button
             onClick={() => {
-              void enterVRSafely();
+              setVrLaunchRequested(true);
+              void enterVRSafely().then((started) => {
+                if (!started) setVrLaunchRequested(false);
+              });
             }}
 
             style={{
@@ -299,27 +322,27 @@ export default function ForestVR() {
       )}
 
       <Canvas
-        shadows={!vrSessionActive}
-        dpr={vrSessionActive ? VR_SAFE_DPR : DESKTOP_DPR}
-        camera={{ fov: 70, near: 0.1, far: 600, position: [6, 3, 6] }}
+        shadows={!vrSafe}
+        dpr={vrSafe ? VR_SAFE_DPR : DESKTOP_DPR}
+        camera={{ fov: 70, near: 0.1, far: vrSafe ? 240 : 600, position: [6, 3, 6] }}
         gl={{
-          antialias: !vrSessionActive,
+          antialias: false,
           alpha: false,
           depth: true,
           stencil: false,
           preserveDrawingBuffer: false,
-          powerPreference: vrSessionActive ? "default" : "high-performance",
+          powerPreference: "default",
         }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = vrSessionActive ? 0.95 : 1.05;
+          gl.toneMappingExposure = 1.0;
           gl.shadowMap.type = THREE.PCFShadowMap;
           gl.setClearColor("#9ec3e0", 1);
         }}
       >
         <WebGLContextGuard onLost={() => setWebglContextLost(true)} />
         <XR store={store}>
-          <XRSessionSync onSessionChange={setVrSessionActive} />
+          <XRSessionSync onSessionChange={handleSessionChange} />
           <color attach="background" args={["#9ec3e0"]} />
           <fog attach="fog" args={["#b8d0e2", 55, 220]} />
 
@@ -341,13 +364,13 @@ export default function ForestVR() {
             shadow-bias={-0.0004}
             shadow-normalBias={0.04}
           />
-          <Atmosphere vrSafe={vrSessionActive} />
-          <Terrain />
-          <Stream />
-          <Ponds />
+          <Atmosphere vrSafe={vrSafe} />
+          <Terrain vrSafe={vrSafe} />
+          <Stream vrSafe={vrSafe} />
+          <Ponds vrSafe={vrSafe} />
           <Bridge />
           <Trees />
-          <GrassBlades />
+          {!vrSafe && <GrassBlades />}
           <Rocks />
           <Rabbits />
           <Foxes />
