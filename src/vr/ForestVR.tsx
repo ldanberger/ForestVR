@@ -24,11 +24,21 @@ import {
   useUi,
 } from "./uiState";
 
+// Explicitly request only `local-floor` (with `local` fallback). The
+// @react-three/xr default requests `bounded-floor`, which needs a configured
+// Quest guardian bounded play area — when it can't be resolved the session
+// starts but renders black. Dropping bounded-floor fixes the black screen on
+// Quest 3.
 const store = createXRStore({
   foveation: 0,
   offerSession: "immersive-vr",
   hand: { teleportPointer: true },
-});
+  sessionInit: {
+    requiredFeatures: ["local-floor"],
+    optionalFeatures: ["hand-tracking", "layers"],
+  },
+  referenceSpace: "local-floor",
+} as any);
 
 const DESKTOP_DPR: [number, number] = [1, 2];
 const VR_SAFE_DPR: [number, number] = [1, 1];
