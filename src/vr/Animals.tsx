@@ -505,8 +505,8 @@ function RabbitMesh() {
   );
 }
 
-export function Rabbits() {
-  const critters = useMemo(() => makeCritters(40, 4242, 1.2, "rabbit"), []);
+export function Rabbits({ vrSafe = false }: { vrSafe?: boolean }) {
+  const critters = useMemo(() => makeCritters(vrSafe ? 12 : 40, 4242, 1.2, "rabbit"), [vrSafe]);
   const groupRef = useRef<THREE.Group>(null);
   useEffect(() => {
     return registerCrittersForSpecies(
