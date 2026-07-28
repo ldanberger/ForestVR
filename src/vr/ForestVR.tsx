@@ -27,11 +27,9 @@ import {
 // Restore the original/default XR startup path. In @react-three/xr v6,
 // bounded-floor is only used when `bounded: true`; the default manager reference
 // space is local-floor, which is what worked before the recent VR experiments.
-const store = createXRStore({
-  foveation: 0,
-  offerSession: "immersive-vr",
-  hand: { teleportPointer: true },
-});
+// Minimal store — every option we added over the past iterations turned out to
+// be a source of black-screen regressions on Meta Quest. Defaults it is.
+const store = createXRStore();
 
 const DESKTOP_DPR: [number, number] = [1, 2];
 
