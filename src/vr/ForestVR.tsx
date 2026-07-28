@@ -29,6 +29,10 @@ import {
 // session, DOM overlay, layers, anchors, hand tracking, mesh/plane detection,
 // hit tests, or forced refresh-rate changes. Controllers still work.
 const store = createXRStore({
+  customSessionInit: {
+    requiredFeatures: ["local-floor"],
+    optionalFeatures: [],
+  },
   offerSession: false,
   frameRate: false,
   frameBufferScaling: "low",
