@@ -91,7 +91,7 @@ function makeRoughnessMap(size = 256) {
 export function Terrain({ vrSafe = false }: { vrSafe?: boolean }) {
   const { geometry, normalMap, roughnessMap } = useMemo(() => {
     const size = 260;
-    const segs = vrSafe ? 180 : 400;
+    const segs = vrSafe ? 100 : 400;
     const geo = new THREE.PlaneGeometry(size, size, segs, segs);
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position as THREE.BufferAttribute;

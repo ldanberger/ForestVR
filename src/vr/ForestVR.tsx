@@ -203,6 +203,7 @@ export default function ForestVR() {
   const [questPreflight, setQuestPreflight] = useState(false);
   const [questSceneReady, setQuestSceneReady] = useState(false);
   const [webglContextLost, setWebglContextLost] = useState(false);
+  const [vrPhase, setVrPhase] = useState(0);
   const vrSafe = questBrowser || vrSessionActive;
   const questBootActive = questBrowser && questPreflight && !questSceneReady;
 
@@ -211,6 +212,7 @@ export default function ForestVR() {
     if (!active) {
       setQuestPreflight(false);
       setQuestSceneReady(false);
+      setVrPhase(0);
     }
   }, []);
 
@@ -219,6 +221,26 @@ export default function ForestVR() {
     const id = window.setTimeout(() => setQuestSceneReady(true), 3500);
     return () => window.clearTimeout(id);
   }, [questBrowser, questPreflight, vrSessionActive]);
+
+  // Progressive scene load in VR: mount heavy groups a few seconds apart so
+  // the swap from the boot scene doesn't slam the GPU with all shader
+  // compiles at once (which was freezing the headset after ~5s).
+  useEffect(() => {
+    if (!vrSafe) {
+      setVrPhase(99);
+      return;
+    }
+    if (questBrowser && !questSceneReady) return;
+    setVrPhase(1);
+    const t2 = window.setTimeout(() => setVrPhase(2), 2500);
+    const t3 = window.setTimeout(() => setVrPhase(3), 5000);
+    const t4 = window.setTimeout(() => setVrPhase(4), 7500);
+    return () => {
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+      window.clearTimeout(t4);
+    };
+  }, [vrSafe, questBrowser, questSceneReady]);
 
   // Right-click anywhere toggles the instructions panel.
   useEffect(() => {
@@ -436,17 +458,17 @@ export default function ForestVR() {
                 shadow-normalBias={0.04}
               />
               <Atmosphere vrSafe={vrSafe} />
-              <Terrain vrSafe={vrSafe} />
-              <Stream vrSafe={vrSafe} />
-              <Ponds vrSafe={vrSafe} />
-              <Bridge />
-              <Trees vrSafe={vrSafe} />
-              {!vrSafe && <GrassBlades />}
-              <Rocks vrSafe={vrSafe} />
-              <Rabbits />
-              <Foxes />
-              <Items />
-              <Carrots />
+              {vrPhase >= 1 && <Terrain vrSafe={vrSafe} />}
+              {vrPhase >= 1 && <Stream vrSafe={vrSafe} />}
+              {vrPhase >= 1 && <Ponds vrSafe={vrSafe} />}
+              {vrPhase >= 1 && <Bridge />}
+              {vrPhase >= 2 && <Trees vrSafe={vrSafe} />}
+              {vrPhase >= 2 && !vrSafe && <GrassBlades />}
+              {vrPhase >= 2 && <Rocks vrSafe={vrSafe} />}
+              {vrPhase >= 3 && <Rabbits vrSafe={vrSafe} />}
+              {vrPhase >= 3 && <Foxes vrSafe={vrSafe} />}
+              {vrPhase >= 4 && <Items />}
+              {vrPhase >= 4 && <Carrots />}
               <Player />
               <VRHud />
             </>
