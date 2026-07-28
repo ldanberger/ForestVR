@@ -1,35 +1,33 @@
-## Goal
-Place a visible wooden bridge across the central stream. Animals can walk across the stream within the bridge's footprint; outside it, water remains impassable.
+## Problem
 
-## Approach
+The current `createXRStore` call in `src/vr/ForestVR.tsx` doesn't specify a reference space. `@react-three/xr` v6 defaults to requesting `bounded-floor` (with `local-floor` as fallback). On Quest 3, `bounded-floor` requires a properly configured Guardian/bounded play area — if it can't be resolved, the session can start but render as a black frame (camera pose never resolves, or the scene sits outside the bounds volume).
 
-### 1. Bridge geometry — new `src/vr/Bridge.tsx`
-- Export `BRIDGE_Z = 0` (center along stream length) and `BRIDGE_HALF_LEN = 3` (6 m wide crossing along z-axis).
-- Render a group at `[0, terrainHeight(0,0) ~ -0.2, BRIDGE_Z]`:
-  - Deck: `boxGeometry` ~ 5 m (x, spans stream + banks) × 0.2 m × 6 m (z), warm plank-brown `MeshStandardMaterial` (roughness 0.85).
-  - Two rails: thin boxes on ±z edges, 0.1 × 0.9 × 6, plus 4 short posts at corners.
-  - Slight subdivisions across x to fake plank lines via repeated small boxes (optional, keep simple).
-- Cast/receive shadows.
+You asked whether the code uses `bounded-floor`. Indirectly, yes — via the library default. That's a likely cause of the black screen.
 
-### 2. Integrate into scene
-- `src/vr/ForestVR.tsx`: import and render `<Bridge />` alongside `<Stream />`.
+## Fix
 
-### 3. Let animals cross on the bridge — `src/vr/obstacles.ts`
-- Add helper `onBridge(z: number)` = `Math.abs(z - BRIDGE_Z) <= BRIDGE_HALF_LEN`.
-- In `resolveObstacles` and `steerAroundObstacles`, skip the "water strip along x=0" clamp/steer when `onBridge(pos.z)`.
+1. **In `src/vr/ForestVR.tsx`**, change the `createXRStore({...})` config to explicitly request only safe reference spaces and features:
+   - `referenceSpace: "local-floor"` (fall back to `"local"` if unsupported)
+   - Drop the implicit `bounded-floor` requirement
+   - Keep `offerSession: "immersive-vr"`, `foveation: 0`, hand teleport pointer
+   - Add `optionalFeatures: ["local-floor", "hand-tracking"]` and `requiredFeatures: ["local-floor"]` if the version accepts them; otherwise use the store's `sessionInit` option
 
-### 4. Let animal wander loop cross too — `src/vr/Animals.tsx`
-- In the `bankSide` clamp block (~line 290), skip the push-out when `Math.abs(c.pos.z - BRIDGE_Z) <= BRIDGE_HALF_LEN`. Also once an animal reaches the far bank via the bridge, update `c.bankSide = c.pos.x >= 0 ? 1 : -1` so it isn't yanked back on the next tick.
-- In the early stream-limit block (~line 79) that clamps `pos.x`, apply the same bridge exemption.
+2. **Add a small "VR session started" sanity log + on-screen overlay** while `vrSessionActive` is true, showing camera Y and the resolved reference space. This confirms the session is live even if the scene renders black, so we can tell "session never started" apart from "session started but scene invisible".
 
-### 5. Keep spawn exclusion zones intact
-- Carrots/Scatter/Animals spawn exclusions around the stream stay unchanged so nothing spawns on the bridge deck itself.
+3. **Guarantee the player is above ground the moment the session begins.** In `src/vr/Player.tsx` (or `ForestVR.tsx` via `XRSessionSync`), on session start, snap the XR rig's world position to a safe spawn (`x=6, y=heightAt(6,6)+1.6, z=6`). Some Quest setups leave the rig at world origin (0,0,0), which under our carved stream corridor is at `y=-1.6` — the camera ends up underwater/underground, which reads as black.
 
-### 6. Minimap
-- `src/vr/Minimap.tsx`: draw a small brown rectangle at world (0, BRIDGE_Z) sized to bridge footprint, drawn above the stream line but under animal dots.
-- Bump `APP_VERSION` to `0.44.0`.
+4. **Bump version** in `src/vr/Minimap.tsx` to `v0.55.0`.
 
-## Technical notes
-- Constants live in the new `Bridge.tsx` and are imported where needed (Animals, obstacles, Minimap).
-- No physics library — the deck is purely visual; the player already walks freely (water refill trigger only fires when actually within stream x-band, which the bridge overlaps — acceptable, matches "standing at stream" behavior).
-- No changes to survival, tag, or player speed logic.
+## Files touched
+
+- `src/vr/ForestVR.tsx` — XR store config + diagnostic overlay
+- `src/vr/Player.tsx` — spawn-snap on XR session start
+- `src/vr/Minimap.tsx` — version bump
+
+## Verification
+
+After the change, entering VR on Quest 3 should show the forest immediately. If it's still black, the on-screen diagnostic will tell us whether the session even started and where the camera thinks it is, so the next iteration is targeted rather than another guess.
+
+## Question
+
+Is the black screen happening **inside the Meta Quest Browser opened directly to the site URL** (not inside Lovable's preview iframe)? WebXR won't render inside a cross-origin iframe on Quest — that alone causes a black VR view even when everything else is correct. If you're launching from the Lovable preview panel, open the published URL directly on the headset first; if that already works, this plan is unnecessary.

@@ -56,6 +56,21 @@ export function Player() {
   const pitch = useRef(0);
   const dragging = useRef(false);
   const prevBButton = useRef(false);
+  const prevSession = useRef<unknown>(null);
+
+  // When an XR session begins, snap the rig to a safe spawn above the terrain.
+  // Some Quest setups leave the rig at world origin (0,0,0), which under the
+  // carved stream corridor puts the camera underground — reads as black.
+  useEffect(() => {
+    if (session && !prevSession.current) {
+      const rig = originRef.current;
+      if (rig) {
+        rig.position.set(6, heightAt(6, 6), 6);
+        rig.rotation.set(0, 0, 0);
+      }
+    }
+    prevSession.current = session;
+  }, [session]);
 
   // Initial desktop camera setup
   useEffect(() => {
