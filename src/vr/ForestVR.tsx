@@ -24,36 +24,16 @@ import {
   useUi,
 } from "./uiState";
 
-// Use the actual @react-three/xr v6 option names. `sessionInit` and
-// `referenceSpace` are ignored by this version, so the previous change still
-// requested the library's full default feature bundle. Quest Browser can enter
-// an opaque session but render black when optional WebXR layers/scene features
-// are enabled, so this starts with the smallest reliable immersive-vr session.
+// Restore the original/default XR startup path. In @react-three/xr v6,
+// bounded-floor is only used when `bounded: true`; the default manager reference
+// space is local-floor, which is what worked before the recent VR experiments.
 const store = createXRStore({
-  foveation: 1,
-  frameBufferScaling: 0.65,
-  frameRate: false,
-  offerSession: false,
-  enterGrantedSession: false,
-  emulate: false,
+  foveation: 0,
+  offerSession: "immersive-vr",
   hand: { teleportPointer: true },
-  anchors: false,
-  bodyTracking: false,
-  depthSensing: false,
-  domOverlay: false,
-  hitTest: false,
-  layers: false,
-  meshDetection: false,
-  planeDetection: false,
-  customSessionInit: {
-    requiredFeatures: ["local-floor"],
-    optionalFeatures: [],
-  },
-} as any);
+});
 
 const DESKTOP_DPR: [number, number] = [1, 2];
-const VR_SAFE_DPR: [number, number] = [1, 1];
-
 
 async function enterVRSafely() {
   try {
@@ -104,10 +84,10 @@ function XRSessionSync({
     if (active) {
       startGame();
       if (!wasActive.current) {
-        console.info("Immersive VR session started; using Quest-safe scene settings.");
+        console.info("Immersive VR session started with the standard local-floor XR path.");
       }
     } else if (wasActive.current) {
-      console.info("Immersive VR session ended; restoring desktop scene settings.");
+      console.info("Immersive VR session ended.");
     }
 
     wasActive.current = active;
@@ -140,11 +120,7 @@ function WebGLContextGuard({ onLost }: { onLost: () => void }) {
   return null;
 }
 
-function Atmosphere({ vrSafe }: { vrSafe: boolean }) {
-  if (vrSafe) {
-    return <Sky sunPosition={[40, 55, 25]} turbidity={2.4} rayleigh={1.1} mieCoefficient={0.004} mieDirectionalG={0.82} />;
-  }
-
+function Atmosphere() {
   return (
     <>
       <Sky sunPosition={[40, 55, 25]} turbidity={3} rayleigh={1.2} mieCoefficient={0.005} mieDirectionalG={0.85} />
@@ -164,14 +140,11 @@ function Atmosphere({ vrSafe }: { vrSafe: boolean }) {
 
 export default function ForestVR() {
   const ui = useUi();
-  const [vrLaunchRequested, setVrLaunchRequested] = useState(false);
   const [vrSessionActive, setVrSessionActive] = useState(false);
   const [webglContextLost, setWebglContextLost] = useState(false);
-  const vrSafe = vrLaunchRequested || vrSessionActive;
 
   const handleSessionChange = useCallback((active: boolean) => {
     setVrSessionActive(active);
-    setVrLaunchRequested(active);
   }, []);
 
   // Right-click anywhere toggles the instructions panel.
@@ -205,10 +178,7 @@ export default function ForestVR() {
         >
           <button
             onClick={() => {
-              setVrLaunchRequested(true);
-              void enterVRSafely().then((started) => {
-                if (!started) setVrLaunchRequested(false);
-              });
+              void enterVRSafely();
             }}
 
             style={{
@@ -322,16 +292,16 @@ export default function ForestVR() {
       )}
 
       <Canvas
-        shadows={!vrSafe}
-        dpr={vrSafe ? VR_SAFE_DPR : DESKTOP_DPR}
-        camera={{ fov: 70, near: 0.1, far: vrSafe ? 240 : 600, position: [6, 3, 6] }}
+        shadows
+        dpr={DESKTOP_DPR}
+        camera={{ fov: 70, near: 0.1, far: 600, position: [6, 3, 6] }}
         gl={{
-          antialias: false,
+          antialias: true,
           alpha: false,
           depth: true,
           stencil: false,
           preserveDrawingBuffer: false,
-          powerPreference: "default",
+          powerPreference: "high-performance",
         }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
@@ -364,13 +334,13 @@ export default function ForestVR() {
             shadow-bias={-0.0004}
             shadow-normalBias={0.04}
           />
-          <Atmosphere vrSafe={vrSafe} />
-          <Terrain vrSafe={vrSafe} />
-          <Stream vrSafe={vrSafe} />
-          <Ponds vrSafe={vrSafe} />
+          <Atmosphere />
+          <Terrain />
+          <Stream />
+          <Ponds />
           <Bridge />
           <Trees />
-          {!vrSafe && <GrassBlades />}
+          <GrassBlades />
           <Rocks />
           <Rabbits />
           <Foxes />
