@@ -35,6 +35,11 @@ const store = createXRStore({
 
 const DESKTOP_DPR: [number, number] = [1, 2];
 
+function isQuestBrowser() {
+  if (typeof navigator === "undefined") return false;
+  return /Quest|OculusBrowser|Meta Quest/i.test(navigator.userAgent);
+}
+
 async function enterVRSafely() {
   try {
     // Some browsers (Quest) only expose navigator.xr on secure origins.
@@ -120,7 +125,11 @@ function WebGLContextGuard({ onLost }: { onLost: () => void }) {
   return null;
 }
 
-function Atmosphere() {
+function Atmosphere({ vrSafe }: { vrSafe: boolean }) {
+  if (vrSafe) {
+    return <Sky sunPosition={[40, 55, 25]} turbidity={2.8} rayleigh={1.1} mieCoefficient={0.004} mieDirectionalG={0.85} />;
+  }
+
   return (
     <>
       <Sky sunPosition={[40, 55, 25]} turbidity={3} rayleigh={1.2} mieCoefficient={0.005} mieDirectionalG={0.85} />
@@ -140,8 +149,10 @@ function Atmosphere() {
 
 export default function ForestVR() {
   const ui = useUi();
+  const [questBrowser] = useState(() => isQuestBrowser());
   const [vrSessionActive, setVrSessionActive] = useState(false);
   const [webglContextLost, setWebglContextLost] = useState(false);
+  const vrSafe = questBrowser || vrSessionActive;
 
   const handleSessionChange = useCallback((active: boolean) => {
     setVrSessionActive(active);
@@ -292,11 +303,11 @@ export default function ForestVR() {
       )}
 
       <Canvas
-        shadows
-        dpr={DESKTOP_DPR}
-        camera={{ fov: 70, near: 0.1, far: 600, position: [6, 3, 6] }}
+        shadows={!vrSafe}
+        dpr={vrSafe ? 1 : DESKTOP_DPR}
+        camera={{ fov: 70, near: 0.1, far: vrSafe ? 260 : 600, position: [6, 3, 6] }}
         gl={{
-          antialias: true,
+          antialias: !vrSafe,
           alpha: false,
           depth: true,
           stencil: false,
@@ -306,6 +317,7 @@ export default function ForestVR() {
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.0;
+          gl.shadowMap.enabled = !vrSafe;
           gl.shadowMap.type = THREE.PCFShadowMap;
           gl.setClearColor("#9ec3e0", 1);
         }}
@@ -314,15 +326,15 @@ export default function ForestVR() {
         <XR store={store}>
           <XRSessionSync onSessionChange={handleSessionChange} />
           <color attach="background" args={["#9ec3e0"]} />
-          <fog attach="fog" args={["#b8d0e2", 55, 220]} />
+          <fog attach="fog" args={["#b8d0e2", vrSafe ? 38 : 55, vrSafe ? 135 : 220]} />
 
-          <ambientLight intensity={0.35} />
-          <hemisphereLight args={["#dceeff", "#3a4a2a", 0.45]} />
+          <ambientLight intensity={vrSafe ? 0.65 : 0.35} />
+          <hemisphereLight args={["#dceeff", "#3a4a2a", vrSafe ? 0.7 : 0.45]} />
           <directionalLight
             position={[40, 55, 25]}
-            intensity={vrSessionActive ? 1.7 : 2.2}
+            intensity={vrSafe ? 1.4 : 2.2}
             color="#fff2d6"
-            castShadow={!vrSessionActive}
+            castShadow={!vrSafe}
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
             shadow-camera-left={-60}
@@ -334,14 +346,14 @@ export default function ForestVR() {
             shadow-bias={-0.0004}
             shadow-normalBias={0.04}
           />
-          <Atmosphere />
-          <Terrain />
-          <Stream />
-          <Ponds />
+          <Atmosphere vrSafe={vrSafe} />
+          <Terrain vrSafe={vrSafe} />
+          <Stream vrSafe={vrSafe} />
+          <Ponds vrSafe={vrSafe} />
           <Bridge />
-          <Trees />
-          <GrassBlades />
-          <Rocks />
+          <Trees vrSafe={vrSafe} />
+          {!vrSafe && <GrassBlades />}
+          <Rocks vrSafe={vrSafe} />
           <Rabbits />
           <Foxes />
           <Items />
