@@ -627,8 +627,8 @@ function FoxMesh() {
   );
 }
 
-export function Foxes() {
-  const critters = useMemo(() => makeCritters(20, 7373, 1.9, "fox"), []);
+export function Foxes({ vrSafe = false }: { vrSafe?: boolean }) {
+  const critters = useMemo(() => makeCritters(vrSafe ? 6 : 20, 7373, 1.9, "fox"), [vrSafe]);
   const groupRef = useRef<THREE.Group>(null);
   useEffect(() => {
     return registerCrittersForSpecies(
