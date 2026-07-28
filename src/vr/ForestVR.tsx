@@ -311,13 +311,25 @@ export default function ForestVR() {
           stencil: false,
           preserveDrawingBuffer: false,
           powerPreference: "high-performance",
-        }}
+          // Critical for WebXR: the WebGL context must be created with
+          // xrCompatible so `renderer.xr.setSession()` can attach a framebuffer.
+          // Without this, sessions on Quest start but present nothing → black.
+          xrCompatible: true,
+        } as any}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.0;
           gl.shadowMap.enabled = !vrSafe;
           gl.shadowMap.type = THREE.PCFShadowMap;
           gl.setClearColor("#9ec3e0", 1);
+          // Belt-and-suspenders: force the underlying context XR-compatible
+          // even if the constructor flag was ignored.
+          const ctx: any = gl.getContext();
+          if (ctx && typeof ctx.makeXRCompatible === "function") {
+            ctx.makeXRCompatible().catch((e: unknown) => {
+              console.warn("makeXRCompatible failed", e);
+            });
+          }
         }}
       >
         <WebGLContextGuard onLost={() => setWebglContextLost(true)} />
