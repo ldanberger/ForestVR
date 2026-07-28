@@ -27,11 +27,9 @@ import {
 // Restore the original/default XR startup path. In @react-three/xr v6,
 // bounded-floor is only used when `bounded: true`; the default manager reference
 // space is local-floor, which is what worked before the recent VR experiments.
-const store = createXRStore({
-  foveation: 0,
-  offerSession: "immersive-vr",
-  hand: { teleportPointer: true },
-});
+// Minimal store — every option we added over the past iterations turned out to
+// be a source of black-screen regressions on Meta Quest. Defaults it is.
+const store = createXRStore();
 
 const DESKTOP_DPR: [number, number] = [1, 2];
 
@@ -313,13 +311,25 @@ export default function ForestVR() {
           stencil: false,
           preserveDrawingBuffer: false,
           powerPreference: "high-performance",
-        }}
+          // Critical for WebXR: the WebGL context must be created with
+          // xrCompatible so `renderer.xr.setSession()` can attach a framebuffer.
+          // Without this, sessions on Quest start but present nothing → black.
+          xrCompatible: true,
+        } as any}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.0;
           gl.shadowMap.enabled = !vrSafe;
           gl.shadowMap.type = THREE.PCFShadowMap;
           gl.setClearColor("#9ec3e0", 1);
+          // Belt-and-suspenders: force the underlying context XR-compatible
+          // even if the constructor flag was ignored.
+          const ctx: any = gl.getContext();
+          if (ctx && typeof ctx.makeXRCompatible === "function") {
+            ctx.makeXRCompatible().catch((e: unknown) => {
+              console.warn("makeXRCompatible failed", e);
+            });
+          }
         }}
       >
         <WebGLContextGuard onLost={() => setWebglContextLost(true)} />
