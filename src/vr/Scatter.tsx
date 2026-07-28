@@ -328,7 +328,7 @@ export function Trees({ vrSafe = false }: { vrSafe?: boolean }) {
 /* --------- ROCKS --------- */
 
 export function Rocks({ vrSafe = false }: { vrSafe?: boolean }) {
-  const rockCount = vrSafe ? 60 : 120;
+  const rockCount = vrSafe ? 30 : 120;
   const positions = useMemo(() => scatterPoints(rockCount, 7, { minY: -1, maxY: 20 }), [rockCount]);
   const { colorMap, normalMap, roughnessMap } = useMemo(() => makeRockTextures(vrSafe ? 128 : 512), [vrSafe]);
 
