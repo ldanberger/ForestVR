@@ -215,7 +215,7 @@ function makeRockTextures(size = 512) {
 /* --------- TREES (instanced, layered foliage) --------- */
 
 export function Trees({ vrSafe = false }: { vrSafe?: boolean }) {
-  const treeCount = vrSafe ? 120 : 280;
+  const treeCount = vrSafe ? 60 : 280;
   const positions = useMemo(() => scatterPoints(treeCount, 42, { minY: 0.3, maxY: 12 }), [treeCount]);
   const { colorMap: barkColor, normalMap: barkNormal } = useMemo(() => makeBarkTextures(vrSafe ? 96 : 256), [vrSafe]);
 
