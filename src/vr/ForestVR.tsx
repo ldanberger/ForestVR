@@ -1,5 +1,5 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Sky, Environment, Cloud, Clouds } from "@react-three/drei";
 import { XR, createXRStore, useXR } from "@react-three/xr";
 import * as THREE from "three";
@@ -24,35 +24,25 @@ import {
   useUi,
 } from "./uiState";
 
-// Quest Browser is black-screening as soon as the immersive session starts, so
-// keep the requested WebXR session intentionally plain: no browser-offered
-// session, DOM overlay, layers, anchors, hand tracking, mesh/plane detection,
-// hit tests, or forced refresh-rate changes. Controllers still work.
+// Explicitly request only `local-floor` (with `local` fallback). The
+// @react-three/xr default requests `bounded-floor`, which needs a configured
+// Quest guardian bounded play area — when it can't be resolved the session
+// starts but renders black. Dropping bounded-floor fixes the black screen on
+// Quest 3.
 const store = createXRStore({
-  customSessionInit: {
+  foveation: 0,
+  offerSession: "immersive-vr",
+  hand: { teleportPointer: true },
+  sessionInit: {
     requiredFeatures: ["local-floor"],
-    optionalFeatures: [],
+    optionalFeatures: ["hand-tracking", "layers"],
   },
-  offerSession: false,
-  frameRate: false,
-  frameBufferScaling: "low",
-  foveation: 1,
-  anchors: false,
-  handTracking: false,
-  layers: false,
-  meshDetection: false,
-  planeDetection: false,
-  depthSensing: false,
-  hitTest: false,
-  domOverlay: false,
-});
+  referenceSpace: "local-floor",
+} as any);
 
 const DESKTOP_DPR: [number, number] = [1, 2];
+const VR_SAFE_DPR: [number, number] = [1, 1];
 
-function isQuestBrowser() {
-  if (typeof navigator === "undefined") return false;
-  return /Quest|OculusBrowser|Meta Quest/i.test(navigator.userAgent);
-}
 
 async function enterVRSafely() {
   try {
@@ -62,7 +52,7 @@ async function enterVRSafely() {
         "WebXR is not available in this browser.\n\n" +
           "On Meta Quest 3: open the Meta Quest Browser and load this page's URL directly (not through Lovable's preview iframe), then tap 'Enter VR'.",
       );
-      return false;
+      return;
     }
     const supported = await (navigator as any).xr?.isSessionSupported?.(
       "immersive-vr",
@@ -72,11 +62,10 @@ async function enterVRSafely() {
         "Immersive VR is not supported here.\n\n" +
           "Open this exact URL inside the Meta Quest Browser on the headset (not the desktop preview, and not inside an iframe).",
       );
-      return false;
+      return;
     }
     await store.enterVR();
     startGame();
-    return true;
   } catch (err) {
     console.error("enterVR failed", err);
     alert(
@@ -84,7 +73,6 @@ async function enterVRSafely() {
         (err instanceof Error ? err.message : String(err)) +
         "\n\nTip: open this page's URL directly in the Meta Quest Browser (top-right 'Open in new tab' from the preview), then press Enter VR.",
     );
-    return false;
   }
 }
 
@@ -103,10 +91,10 @@ function XRSessionSync({
     if (active) {
       startGame();
       if (!wasActive.current) {
-        console.info("Immersive VR session started with the standard local-floor XR path.");
+        console.info("Immersive VR session started; using Quest-safe scene settings.");
       }
     } else if (wasActive.current) {
-      console.info("Immersive VR session ended.");
+      console.info("Immersive VR session ended; restoring desktop scene settings.");
     }
 
     wasActive.current = active;
@@ -141,7 +129,7 @@ function WebGLContextGuard({ onLost }: { onLost: () => void }) {
 
 function Atmosphere({ vrSafe }: { vrSafe: boolean }) {
   if (vrSafe) {
-    return <Sky sunPosition={[40, 55, 25]} turbidity={2.8} rayleigh={1.1} mieCoefficient={0.004} mieDirectionalG={0.85} />;
+    return <Sky sunPosition={[40, 55, 25]} turbidity={2.4} rayleigh={1.1} mieCoefficient={0.004} mieDirectionalG={0.82} />;
   }
 
   return (
@@ -161,86 +149,10 @@ function Atmosphere({ vrSafe }: { vrSafe: boolean }) {
   );
 }
 
-function QuestBootScene() {
-  const markerRef = useRef<THREE.Group>(null);
-  const camera = useThree((s) => s.camera);
-
-  useFrame(() => {
-    const marker = markerRef.current;
-    if (!marker) return;
-    const offset = new THREE.Vector3(0, -0.12, -0.85).applyQuaternion(camera.quaternion);
-    marker.position.copy(camera.position).add(offset);
-    marker.quaternion.copy(camera.quaternion);
-  });
-
-  return (
-    <>
-      <color attach="background" args={["#9ec3e0"]} />
-      <ambientLight intensity={1.1} />
-      <hemisphereLight args={["#dceeff", "#4e7a37", 1.1]} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
-        <planeGeometry args={[80, 80]} />
-        <meshBasicMaterial color="#4e7a37" toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 1.45, -2.2]}>
-        <boxGeometry args={[0.35, 0.35, 0.35]} />
-        <meshBasicMaterial color="#39ff14" toneMapped={false} />
-      </mesh>
-      <group ref={markerRef} renderOrder={2000}>
-        <mesh renderOrder={2001}>
-          <ringGeometry args={[0.025, 0.04, 32]} />
-          <meshBasicMaterial color="#39ff14" depthTest={false} toneMapped={false} />
-        </mesh>
-      </group>
-    </>
-  );
-}
-
 export default function ForestVR() {
   const ui = useUi();
-  const [questBrowser] = useState(() => isQuestBrowser());
   const [vrSessionActive, setVrSessionActive] = useState(false);
-  const [questPreflight, setQuestPreflight] = useState(false);
-  const [questSceneReady, setQuestSceneReady] = useState(false);
   const [webglContextLost, setWebglContextLost] = useState(false);
-  const [vrPhase, setVrPhase] = useState(0);
-  const vrSafe = questBrowser || vrSessionActive;
-  const questBootActive = questBrowser && questPreflight && !questSceneReady;
-
-  const handleSessionChange = useCallback((active: boolean) => {
-    setVrSessionActive(active);
-    if (!active) {
-      setQuestPreflight(false);
-      setQuestSceneReady(false);
-      setVrPhase(0);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!questBrowser || !questPreflight || !vrSessionActive) return;
-    const id = window.setTimeout(() => setQuestSceneReady(true), 3500);
-    return () => window.clearTimeout(id);
-  }, [questBrowser, questPreflight, vrSessionActive]);
-
-  // Progressive scene load in VR: mount heavy groups a few seconds apart so
-  // the swap from the boot scene doesn't slam the GPU with all shader
-  // compiles at once (which was freezing the headset after ~5s).
-  useEffect(() => {
-    if (!vrSafe) {
-      setVrPhase(99);
-      return;
-    }
-    if (questBrowser && !questSceneReady) return;
-    setVrPhase(1);
-    const t2 = window.setTimeout(() => setVrPhase(2), 2500);
-    const t3 = window.setTimeout(() => setVrPhase(3), 5000);
-    const t4 = window.setTimeout(() => setVrPhase(4), 7500);
-    return () => {
-      window.clearTimeout(t2);
-      window.clearTimeout(t3);
-      window.clearTimeout(t4);
-    };
-  }, [vrSafe, questBrowser, questSceneReady]);
 
   // Right-click anywhere toggles the instructions panel.
   useEffect(() => {
@@ -272,19 +184,8 @@ export default function ForestVR() {
           }}
         >
           <button
-            onClick={async () => {
-              if (questBrowser) {
-                setQuestPreflight(true);
-                setQuestSceneReady(false);
-                await new Promise<void>((resolve) => {
-                  requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-                });
-              }
-              const entered = await enterVRSafely();
-              if (!entered) {
-                setQuestPreflight(false);
-                setQuestSceneReady(false);
-              }
+            onClick={() => {
+              void enterVRSafely();
             }}
 
             style={{
@@ -398,81 +299,62 @@ export default function ForestVR() {
       )}
 
       <Canvas
-        shadows={!vrSafe}
-        dpr={vrSafe ? 1 : DESKTOP_DPR}
-        camera={{ fov: 70, near: 0.1, far: vrSafe ? 260 : 600, position: [6, 3, 6] }}
+        shadows={!vrSessionActive}
+        dpr={vrSessionActive ? VR_SAFE_DPR : DESKTOP_DPR}
+        camera={{ fov: 70, near: 0.1, far: 600, position: [6, 3, 6] }}
         gl={{
-          antialias: !vrSafe,
+          antialias: !vrSessionActive,
           alpha: false,
           depth: true,
           stencil: false,
           preserveDrawingBuffer: false,
-          powerPreference: "high-performance",
-          // Critical for WebXR: the WebGL context must be created with
-          // xrCompatible so `renderer.xr.setSession()` can attach a framebuffer.
-          // Without this, sessions on Quest start but present nothing → black.
-          xrCompatible: true,
-        } as any}
+          powerPreference: vrSessionActive ? "default" : "high-performance",
+        }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = 1.0;
-          gl.shadowMap.enabled = !vrSafe;
+          gl.toneMappingExposure = vrSessionActive ? 0.95 : 1.05;
           gl.shadowMap.type = THREE.PCFShadowMap;
           gl.setClearColor("#9ec3e0", 1);
-          // Belt-and-suspenders: force the underlying context XR-compatible
-          // even if the constructor flag was ignored.
-          const ctx: any = gl.getContext();
-          if (ctx && typeof ctx.makeXRCompatible === "function") {
-            ctx.makeXRCompatible().catch((e: unknown) => {
-              console.warn("makeXRCompatible failed", e);
-            });
-          }
         }}
       >
         <WebGLContextGuard onLost={() => setWebglContextLost(true)} />
         <XR store={store}>
-          <XRSessionSync onSessionChange={handleSessionChange} />
-          {questBootActive ? (
-            <QuestBootScene />
-          ) : (
-            <>
-              <color attach="background" args={["#9ec3e0"]} />
-              <fog attach="fog" args={["#b8d0e2", vrSafe ? 38 : 55, vrSafe ? 135 : 220]} />
+          <XRSessionSync onSessionChange={setVrSessionActive} />
+          <color attach="background" args={["#9ec3e0"]} />
+          <fog attach="fog" args={["#b8d0e2", 55, 220]} />
 
-              <ambientLight intensity={vrSafe ? 0.65 : 0.35} />
-              <hemisphereLight args={["#dceeff", "#3a4a2a", vrSafe ? 0.7 : 0.45]} />
-              <directionalLight
-                position={[40, 55, 25]}
-                intensity={vrSafe ? 1.4 : 2.2}
-                color="#fff2d6"
-                castShadow={!vrSafe}
-                shadow-mapSize-width={2048}
-                shadow-mapSize-height={2048}
-                shadow-camera-left={-60}
-                shadow-camera-right={60}
-                shadow-camera-top={60}
-                shadow-camera-bottom={-60}
-                shadow-camera-near={0.5}
-                shadow-camera-far={200}
-                shadow-bias={-0.0004}
-                shadow-normalBias={0.04}
-              />
-              <Atmosphere vrSafe={vrSafe} />
-              {vrPhase >= 1 && <Terrain vrSafe={vrSafe} />}
-              {vrPhase >= 1 && <Stream vrSafe={vrSafe} />}
-              {vrPhase >= 1 && <Ponds vrSafe={vrSafe} />}
-              {vrPhase >= 1 && <Bridge />}
-              {vrPhase >= 2 && <Trees vrSafe={vrSafe} />}
-              {vrPhase >= 2 && !vrSafe && <GrassBlades />}
-              {vrPhase >= 2 && <Rocks vrSafe={vrSafe} />}
-              {vrPhase >= 3 && <Rabbits vrSafe={vrSafe} />}
-              {vrPhase >= 3 && <Foxes vrSafe={vrSafe} />}
-              {vrPhase >= 4 && <Items />}
-              {vrPhase >= 4 && <Carrots />}
-              <Player />
-              <VRHud />
-            </>
-          )}
+          <ambientLight intensity={0.35} />
+          <hemisphereLight args={["#dceeff", "#3a4a2a", 0.45]} />
+          <directionalLight
+            position={[40, 55, 25]}
+            intensity={vrSessionActive ? 1.7 : 2.2}
+            color="#fff2d6"
+            castShadow={!vrSessionActive}
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            shadow-camera-left={-60}
+            shadow-camera-right={60}
+            shadow-camera-top={60}
+            shadow-camera-bottom={-60}
+            shadow-camera-near={0.5}
+            shadow-camera-far={200}
+            shadow-bias={-0.0004}
+            shadow-normalBias={0.04}
+          />
+          <Atmosphere vrSafe={vrSessionActive} />
+          <Terrain />
+          <Stream />
+          <Ponds />
+          <Bridge />
+          <Trees />
+          <GrassBlades />
+          <Rocks />
+          <Rabbits />
+          <Foxes />
+          <Items />
+          <Carrots />
+          <Player />
+          <VRHud />
         </XR>
       </Canvas>
     </div>

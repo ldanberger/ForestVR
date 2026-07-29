@@ -58,10 +58,6 @@ export function VRHud() {
 
   return (
     <group ref={groupRef} visible={false} renderOrder={999}>
-      <mesh position={[0, 0, 0.02]} renderOrder={1000}>
-        <ringGeometry args={[0.012, 0.018, 24]} />
-        <meshBasicMaterial color="#39ff14" depthTest={false} toneMapped={false} />
-      </mesh>
       <mesh position={[0.18, -0.01, -0.01]} renderOrder={998}>
         <planeGeometry args={[0.44, 0.28]} />
         <meshBasicMaterial color="#000" transparent opacity={0.55} depthTest={false} />

@@ -48,7 +48,7 @@ function makeNormalMap(size: number, scaleX: number, scaleY: number) {
   return tex;
 }
 
-export function Stream({ vrSafe = false }: { vrSafe?: boolean }) {
+export function Stream() {
   const geomRef = useRef<THREE.PlaneGeometry>(null);
   const basePositions = useRef<Float32Array | null>(null);
 
@@ -103,42 +103,36 @@ export function Stream({ vrSafe = false }: { vrSafe?: boolean }) {
       {/* Water */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <primitive object={waterGeo} ref={geomRef} attach="geometry" />
-        {vrSafe ? (
-          <meshStandardMaterial color="#1f5f7c" roughness={0.25} metalness={0.02} />
-        ) : (
-          <meshPhysicalMaterial
-            color="#1f4a63"
-            transparent
-            opacity={0.9}
-            roughness={0.08}
-            metalness={0.05}
-            transmission={0.35}
-            thickness={0.6}
-            ior={1.33}
-            clearcoat={1}
-            clearcoatRoughness={0.1}
-            normalMap={normalA}
-            normalScale={new THREE.Vector2(0.7, 0.7)}
-            envMapIntensity={1.6}
-          />
-        )}
+        <meshPhysicalMaterial
+          color="#1f4a63"
+          transparent
+          opacity={0.9}
+          roughness={0.08}
+          metalness={0.05}
+          transmission={0.35}
+          thickness={0.6}
+          ior={1.33}
+          clearcoat={1}
+          clearcoatRoughness={0.1}
+          normalMap={normalA}
+          normalScale={new THREE.Vector2(0.7, 0.7)}
+          envMapIntensity={1.6}
+        />
       </mesh>
       {/* Secondary ripple layer */}
-      {!vrSafe && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-          <planeGeometry args={[3, STREAM_LEN]} />
-          <meshStandardMaterial
-            color="#78a8c0"
-            transparent
-            opacity={0.18}
-            roughness={0.25}
-            metalness={0.1}
-            normalMap={normalB}
-            normalScale={new THREE.Vector2(0.5, 0.5)}
-            depthWrite={false}
-          />
-        </mesh>
-      )}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <planeGeometry args={[3, STREAM_LEN]} />
+        <meshStandardMaterial
+          color="#78a8c0"
+          transparent
+          opacity={0.18}
+          roughness={0.25}
+          metalness={0.1}
+          normalMap={normalB}
+          normalScale={new THREE.Vector2(0.5, 0.5)}
+          depthWrite={false}
+        />
+      </mesh>
       {/* Wet bank strip */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
         <planeGeometry args={[4.2, STREAM_LEN]} />

@@ -88,10 +88,10 @@ function makeRoughnessMap(size = 256) {
   return tex;
 }
 
-export function Terrain({ vrSafe = false }: { vrSafe?: boolean }) {
+export function Terrain() {
   const { geometry, normalMap, roughnessMap } = useMemo(() => {
     const size = 260;
-    const segs = vrSafe ? 100 : 400;
+    const segs = 400;
     const geo = new THREE.PlaneGeometry(size, size, segs, segs);
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -170,10 +170,10 @@ export function Terrain({ vrSafe = false }: { vrSafe?: boolean }) {
 
     return {
       geometry: geo,
-      normalMap: makeDetailNormalMap(vrSafe ? 128 : 512),
-      roughnessMap: makeRoughnessMap(vrSafe ? 128 : 256),
+      normalMap: makeDetailNormalMap(512),
+      roughnessMap: makeRoughnessMap(256),
     };
-  }, [vrSafe]);
+  }, []);
 
   return (
     <mesh geometry={geometry} receiveShadow castShadow>
@@ -182,9 +182,9 @@ export function Terrain({ vrSafe = false }: { vrSafe?: boolean }) {
         roughness={1}
         metalness={0}
         normalMap={normalMap}
-        normalScale={new THREE.Vector2(vrSafe ? 0.35 : 0.9, vrSafe ? 0.35 : 0.9)}
+        normalScale={new THREE.Vector2(0.9, 0.9)}
         roughnessMap={roughnessMap}
-        envMapIntensity={vrSafe ? 0.25 : 0.6}
+        envMapIntensity={0.6}
       />
     </mesh>
   );

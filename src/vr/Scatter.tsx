@@ -214,13 +214,12 @@ function makeRockTextures(size = 512) {
 
 /* --------- TREES (instanced, layered foliage) --------- */
 
-export function Trees({ vrSafe = false }: { vrSafe?: boolean }) {
-  const treeCount = vrSafe ? 60 : 280;
-  const positions = useMemo(() => scatterPoints(treeCount, 42, { minY: 0.3, maxY: 12 }), [treeCount]);
-  const { colorMap: barkColor, normalMap: barkNormal } = useMemo(() => makeBarkTextures(vrSafe ? 96 : 256), [vrSafe]);
+export function Trees() {
+  const positions = useMemo(() => scatterPoints(280, 42, { minY: 0.3, maxY: 12 }), []);
+  const { colorMap: barkColor, normalMap: barkNormal } = useMemo(() => makeBarkTextures(256), []);
 
   const trunkGeo = useMemo(() => {
-    const g = new THREE.CylinderGeometry(0.22, 0.42, 2.8, vrSafe ? 8 : 14, vrSafe ? 3 : 6);
+    const g = new THREE.CylinderGeometry(0.22, 0.42, 2.8, 14, 6);
     // Add subtle noise to trunk vertices for organic shape
     const pos = g.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < pos.count; i++) {
@@ -246,7 +245,7 @@ export function Trees({ vrSafe = false }: { vrSafe?: boolean }) {
     [barkColor, barkNormal],
   );
 
-  const foliageGeo = useMemo(() => new THREE.IcosahedronGeometry(1, vrSafe ? 1 : 2), [vrSafe]);
+  const foliageGeo = useMemo(() => new THREE.IcosahedronGeometry(1, 2), []);
   const foliageMats = useMemo(
     () => [
       new THREE.MeshStandardMaterial({ color: "#2b5620", roughness: 0.9, flatShading: true }),
@@ -327,10 +326,9 @@ export function Trees({ vrSafe = false }: { vrSafe?: boolean }) {
 
 /* --------- ROCKS --------- */
 
-export function Rocks({ vrSafe = false }: { vrSafe?: boolean }) {
-  const rockCount = vrSafe ? 30 : 120;
-  const positions = useMemo(() => scatterPoints(rockCount, 7, { minY: -1, maxY: 20 }), [rockCount]);
-  const { colorMap, normalMap, roughnessMap } = useMemo(() => makeRockTextures(vrSafe ? 128 : 512), [vrSafe]);
+export function Rocks() {
+  const positions = useMemo(() => scatterPoints(120, 7, { minY: -1, maxY: 20 }), []);
+  const { colorMap, normalMap, roughnessMap } = useMemo(() => makeRockTextures(512), []);
 
   // Pre-generate varied rock geometries: chunky boulders, flat slabs, sharp shards.
   const geos = useMemo(() => {
@@ -340,7 +338,7 @@ export function Rocks({ vrSafe = false }: { vrSafe?: boolean }) {
     ];
     for (let n = 0; n < shapes.length; n++) {
       const shape = shapes[n];
-      const detail = vrSafe || shape === "pebble" ? 1 : 2;
+      const detail = shape === "pebble" ? 1 : 2;
       const g = new THREE.IcosahedronGeometry(0.8, detail);
       const pos = g.attributes.position as THREE.BufferAttribute;
       const rand = rng(1000 + n * 17);
