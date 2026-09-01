@@ -1,6 +1,6 @@
 # Forest Wanderer VR
 
-create a virtual reality 3d program for the meta quest 3.  walk around a forest with streams, mountains, hills, trees, rocks, rabbits, foxes.  player can pick up or drop items like axe, bow and arrow, sword.
+experimental mobile, desktop, and meta quest 3 vr game.  Catch (move into same space) an animal to make them it, then run, as animals will try to catch you.  Keep your food up or your running will slow down.  Drink water or you end.
 
 This project was built with [Lovable](https://lovable.dev).
 
