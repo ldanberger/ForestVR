@@ -299,20 +299,20 @@ export default function ForestVR() {
       )}
 
       <Canvas
-        shadows={!vrSessionActive}
-        dpr={vrSessionActive ? VR_SAFE_DPR : DESKTOP_DPR}
+        shadows
+        dpr={RENDER_DPR}
         camera={{ fov: 70, near: 0.1, far: 600, position: [6, 3, 6] }}
         gl={{
-          antialias: !vrSessionActive,
+          antialias: true,
           alpha: false,
           depth: true,
           stencil: false,
           preserveDrawingBuffer: false,
-          powerPreference: vrSessionActive ? "default" : "high-performance",
+          powerPreference: "high-performance",
         }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = vrSessionActive ? 0.95 : 1.05;
+          gl.toneMappingExposure = 1.0;
           gl.shadowMap.type = THREE.PCFShadowMap;
           gl.setClearColor("#9ec3e0", 1);
         }}
@@ -327,9 +327,21 @@ export default function ForestVR() {
           <hemisphereLight args={["#dceeff", "#3a4a2a", 0.45]} />
           <directionalLight
             position={[40, 55, 25]}
-            intensity={vrSessionActive ? 1.7 : 2.2}
+            intensity={2.0}
             color="#fff2d6"
-            castShadow={!vrSessionActive}
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            shadow-camera-left={-60}
+            shadow-camera-right={60}
+            shadow-camera-top={60}
+            shadow-camera-bottom={-60}
+            shadow-camera-near={0.5}
+            shadow-camera-far={200}
+            shadow-bias={-0.0004}
+            shadow-normalBias={0.04}
+          />
+
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
             shadow-camera-left={-60}
