@@ -341,19 +341,8 @@ export default function ForestVR() {
             shadow-bias={-0.0004}
             shadow-normalBias={0.04}
           />
-
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-camera-left={-60}
-            shadow-camera-right={60}
-            shadow-camera-top={60}
-            shadow-camera-bottom={-60}
-            shadow-camera-near={0.5}
-            shadow-camera-far={200}
-            shadow-bias={-0.0004}
-            shadow-normalBias={0.04}
-          />
           <Atmosphere vrSafe={vrSessionActive} />
+
           <Terrain />
           <Stream />
           <Ponds />
