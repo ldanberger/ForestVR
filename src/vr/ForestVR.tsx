@@ -341,7 +341,7 @@ export default function ForestVR() {
             shadow-bias={-0.0004}
             shadow-normalBias={0.04}
           />
-          <Atmosphere vrSafe={vrSessionActive} />
+          <Atmosphere vrSafe={false} />
 
           <Terrain />
           <Stream />
