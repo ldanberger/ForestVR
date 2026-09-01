@@ -24,24 +24,24 @@ import {
   useUi,
 } from "./uiState";
 
-// Explicitly request only `local-floor` (with `local` fallback). The
-// @react-three/xr default requests `bounded-floor`, which needs a configured
-// Quest guardian bounded play area — when it can't be resolved the session
-// starts but renders black. Dropping bounded-floor fixes the black screen on
-// Quest 3.
+// Quest 3 black-screen fixes:
+//  - never *require* a reference space (a failed required feature yields a
+//    session that never produces viewer poses -> black). Request local-floor
+//    as optional and let the runtime fall back to `local`.
+//  - keep every renderer setting static so entering VR can't reconfigure the
+//    WebGL context mid-session.
 const store = createXRStore({
   foveation: 0,
   offerSession: "immersive-vr",
   hand: { teleportPointer: true },
   sessionInit: {
-    requiredFeatures: ["local-floor"],
-    optionalFeatures: ["hand-tracking", "layers"],
+    optionalFeatures: ["local-floor", "bounded-floor", "hand-tracking"],
   },
   referenceSpace: "local-floor",
 } as any);
 
-const DESKTOP_DPR: [number, number] = [1, 2];
-const VR_SAFE_DPR: [number, number] = [1, 1];
+const RENDER_DPR: [number, number] = [1, 1.5];
+
 
 
 async function enterVRSafely() {
@@ -299,20 +299,20 @@ export default function ForestVR() {
       )}
 
       <Canvas
-        shadows={!vrSessionActive}
-        dpr={vrSessionActive ? VR_SAFE_DPR : DESKTOP_DPR}
+        shadows
+        dpr={RENDER_DPR}
         camera={{ fov: 70, near: 0.1, far: 600, position: [6, 3, 6] }}
         gl={{
-          antialias: !vrSessionActive,
+          antialias: true,
           alpha: false,
           depth: true,
           stencil: false,
           preserveDrawingBuffer: false,
-          powerPreference: vrSessionActive ? "default" : "high-performance",
+          powerPreference: "high-performance",
         }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = vrSessionActive ? 0.95 : 1.05;
+          gl.toneMappingExposure = 1.0;
           gl.shadowMap.type = THREE.PCFShadowMap;
           gl.setClearColor("#9ec3e0", 1);
         }}
@@ -327,9 +327,9 @@ export default function ForestVR() {
           <hemisphereLight args={["#dceeff", "#3a4a2a", 0.45]} />
           <directionalLight
             position={[40, 55, 25]}
-            intensity={vrSessionActive ? 1.7 : 2.2}
+            intensity={2.0}
             color="#fff2d6"
-            castShadow={!vrSessionActive}
+            castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
             shadow-camera-left={-60}
@@ -341,7 +341,8 @@ export default function ForestVR() {
             shadow-bias={-0.0004}
             shadow-normalBias={0.04}
           />
-          <Atmosphere vrSafe={vrSessionActive} />
+          <Atmosphere vrSafe={false} />
+
           <Terrain />
           <Stream />
           <Ponds />
