@@ -4,7 +4,7 @@ create a virtual reality 3d program for the meta quest 3.  walk around a forest 
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://ldww.lovable.app
+**Live app**: https://forestvr.lovable.app
 
 ## Build with Lovable
 
