@@ -3,7 +3,7 @@
 // filters) so animals collide with exactly what the player sees.
 
 import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
-import { PONDS } from "./ponds";
+import { PONDS } from "./pondData";
 import { onBridge } from "./Bridge";
 
 export type Obstacle = { x: number; z: number; r: number };

@@ -3,7 +3,7 @@ import { heightAt, STREAM_HALF_WIDTH } from "./useHeightAt";
 import { playerState } from "./playerState";
 import { survivalState } from "./survivalState";
 import { tagState } from "./tagState";
-import { PONDS } from "./ponds";
+import { PONDS } from "./pondData";
 import { BRIDGE_HALF_LEN, BRIDGE_HALF_SPAN, BRIDGE_Z } from "./Bridge";
 
 const MAP_WORLD = 220; // covers -110..110
