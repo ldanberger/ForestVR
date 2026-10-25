@@ -3,7 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { XROrigin, useXRInputSourceState, useXR } from "@react-three/xr";
 import * as THREE from "three";
 import { heightAt, PLAYABLE_HALF_EXTENT, STREAM_HALF_WIDTH } from "./useHeightAt";
-import { nearPondWater } from "./ponds";
+import { nearPondWater } from "./pondData";
 import { playerState } from "./playerState";
 import {
   survivalState,

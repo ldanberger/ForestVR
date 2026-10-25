@@ -6,6 +6,7 @@ export const getRouter = () => {
   const queryClient = new QueryClient();
 
   const router = createRouter({
+    basepath: import.meta.env.BASE_URL.replace(/\/$/, ""),
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
